@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { LandingPage } from "@/components/landing/landing-page";
 
-export default async function HomePage(): Promise<never> {
-  redirect("/dashboard");
+export default function HomePage(): JSX.Element {
+  return <LandingPage />;
 }

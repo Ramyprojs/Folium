@@ -3,47 +3,78 @@
 @tailwind utilities;
 
 :root {
+  --bg-primary: #ffffff;
+  --bg-surface: #f8f8f6;
+  --bg-elevated: #ffffff;
+  --border-hex: #e4e4e0;
+  --border-hover: #c8c8c2;
+  --text-primary: #1a1a18;
+  --text-secondary: #6b6b65;
+  --text-muted: #a8a8a0;
+  --accent-hex: #7c3aed;
+  --accent-soft: rgba(124, 58, 237, 0.1);
+  --accent-hover: #6d28d9;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --info: #2563eb;
+  --font-display: var(--font-playfair), "Playfair Display", serif;
+  --font-body: var(--font-inter), "Inter", sans-serif;
+  --font-mono: var(--font-jetbrains), "JetBrains Mono", monospace;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.14);
+  --shadow-glow: 0 0 24px rgba(124, 58, 237, 0.25);
+  --accent-rgb: 124 58 237;
   --background: 0 0% 100%;
-  --foreground: 0 0% 10%;
-  --muted: 40 8% 96%;
-  --muted-foreground: 24 4% 39%;
+  --foreground: 40 4% 10%;
+  --muted: 48 11% 97%;
+  --muted-foreground: 51 3% 42%;
   --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 10%;
-  --card: 40 8% 96%;
-  --card-foreground: 0 0% 10%;
+  --popover-foreground: 40 4% 10%;
+  --card: 48 11% 97%;
+  --card-foreground: 40 4% 10%;
   --border: 60 8% 90%;
   --input: 60 8% 90%;
   --primary: 262 83% 58%;
-  --primary-foreground: 210 20% 98%;
-  --secondary: 40 8% 96%;
-  --secondary-foreground: 0 0% 10%;
-  --accent: 261 85% 95%;
-  --accent-foreground: 262 83% 40%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 20% 98%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 48 11% 97%;
+  --secondary-foreground: 40 4% 10%;
+  --accent: 262 83% 58%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 69% 52%;
+  --destructive-foreground: 0 0% 98%;
   --ring: 262 83% 58%;
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 }
 
 .dark {
-  --background: 0 0% 10%;
-  --foreground: 60 12% 92%;
-  --muted: 0 0% 13%;
-  --muted-foreground: 40 7% 67%;
-  --popover: 0 0% 10%;
-  --popover-foreground: 210 20% 98%;
-  --card: 0 0% 13%;
-  --card-foreground: 60 12% 92%;
-  --border: 60 3% 18%;
-  --input: 60 3% 18%;
+  --bg-primary: #191918;
+  --bg-surface: #222220;
+  --bg-elevated: #2a2a28;
+  --border-hex: #303030;
+  --border-hover: #444440;
+  --text-primary: #eeeee8;
+  --text-secondary: #9a9a92;
+  --text-muted: #606058;
+  --background: 40 3% 10%;
+  --foreground: 60 10% 93%;
+  --muted: 48 2% 13%;
+  --muted-foreground: 50 5% 61%;
+  --popover: 40 3% 10%;
+  --popover-foreground: 60 10% 93%;
+  --card: 48 2% 13%;
+  --card-foreground: 60 10% 93%;
+  --border: 0 0% 19%;
+  --input: 0 0% 19%;
   --primary: 262 83% 58%;
-  --primary-foreground: 0 0% 99%;
-  --secondary: 0 0% 13%;
-  --secondary-foreground: 210 20% 98%;
-  --accent: 263 46% 22%;
-  --accent-foreground: 260 80% 88%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 20% 98%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 48 2% 13%;
+  --secondary-foreground: 60 10% 93%;
+  --accent: 262 83% 58%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 69% 52%;
+  --destructive-foreground: 0 0% 98%;
   --ring: 262 83% 58%;
 }
 
@@ -52,18 +83,40 @@
 }
 
 body {
-  @apply bg-background text-foreground min-h-screen;
+  @apply min-h-screen bg-background text-foreground;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(0.96rem, 0.94rem + 0.2vw, 1rem);
+  font-family: var(--font-body);
+  font-size: clamp(0.95rem, 0.9rem + 0.25vw, 1rem);
   line-height: 1.75;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: none;
 }
 
 * {
   transition:
     color 150ms ease,
     background-color 150ms ease,
-    border-color 150ms ease;
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent-hex) 28%, transparent);
+  color: var(--text-primary);
 }
 
 .shimmer {
@@ -75,7 +128,7 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent 70%);
   transform: translateX(-100%);
   animation: shimmer 1.4s infinite;
 }
@@ -86,9 +139,135 @@ body {
   }
 }
 
+.gradient-mesh {
+  background-image:
+    radial-gradient(circle at 15% 22%, rgba(124, 58, 237, 0.28) 0, transparent 40%),
+    radial-gradient(circle at 82% 24%, rgba(236, 72, 153, 0.2) 0, transparent 45%),
+    radial-gradient(circle at 30% 84%, rgba(20, 184, 166, 0.22) 0, transparent 42%),
+    radial-gradient(circle at 75% 78%, rgba(245, 158, 11, 0.16) 0, transparent 42%);
+  background-size: 170% 170%;
+  animation: mesh-shift 16s ease-in-out infinite alternate;
+}
+
+@keyframes mesh-shift {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
+}
+
+.button-sheen {
+  position: relative;
+  overflow: hidden;
+}
+
+.button-sheen::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -140%;
+  width: 120%;
+  height: 100%;
+  transform: skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  transition: left 400ms ease;
+}
+
+.button-sheen:hover::before {
+  left: 120%;
+}
+
+.field-error-shake {
+  animation: field-shake 260ms ease;
+}
+
+@keyframes field-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes accent-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.active-accent-pulse {
+  animation: accent-pulse 1.8s ease-in-out infinite;
+}
+
+.ambient-gradient {
+  background: linear-gradient(130deg, rgba(124, 58, 237, 0.07), rgba(236, 72, 153, 0.05), rgba(20, 184, 166, 0.07));
+  background-size: 240% 240%;
+  animation: ambient-shift 24s ease infinite;
+}
+
+@keyframes ambient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes cursor-ripple {
+  0% {
+    transform: scale(0.4);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+@keyframes draw-leaf {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
+    animation: none !important;
+  }
+
+  body {
+    cursor: auto;
   }
 }
 
@@ -107,11 +286,11 @@ body {
 }
 
 *:hover::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
+  background: color-mix(in oklab, var(--border-hex) 100%, transparent);
 }
 
 .notion-editor .ProseMirror {
-  @apply text-base leading-[1.75] font-normal;
+  @apply text-base font-normal leading-[1.75];
 }
 
 .notion-editor .ProseMirror p {
@@ -120,13 +299,25 @@ body {
 
 .notion-editor .ProseMirror .is-editor-empty:first-child::before {
   content: "Press '/' for commands or start writing...";
+  animation: placeholder-breathe 2s ease-in-out infinite;
   @apply pointer-events-none float-left h-0 text-sm text-muted-foreground/75;
+}
+
+@keyframes placeholder-breathe {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.64;
+  }
 }
 
 .notion-editor .ProseMirror h1 {
   font-size: clamp(2.2rem, 2rem + 1vw, 2.8rem);
   letter-spacing: -0.02em;
-  @apply mt-5 mb-2 font-bold;
+  font-family: var(--font-display);
+  @apply mb-2 mt-5 font-bold;
 }
 
 .notion-editor .ProseMirror h2 {
@@ -144,4 +335,10 @@ body {
 
 .notion-editor .ProseMirror > *:hover {
   border-left-color: hsl(var(--accent-foreground) / 0.35);
+}
+
+.prose-code,
+.notion-editor .ProseMirror code,
+.notion-editor .ProseMirror pre {
+  font-family: var(--font-mono);
 }
