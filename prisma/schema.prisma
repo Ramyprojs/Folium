@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WorkspaceRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum PageRole {
+  EDITOR
+  VIEWER
+}
+
+model User {
+  id               String            @id @default(cuid())
+  email            String            @unique
+  name             String
+  avatar           String?
+  passwordHash     String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  workspaces       WorkspaceMember[]
+  ownedWorkspaces  Workspace[]       @relation("WorkspaceOwner")
+  pages            Page[]            @relation("PageCreator")
+  comments         Comment[]
+  pagePermissions  PagePermission[]
+  accounts         Account[]
+  sessions         Session[]
+}
+
+model Workspace {
+  id         String            @id @default(cuid())
+  name       String
+  icon       String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  ownerId    String
+  owner      User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members    WorkspaceMember[]
+  pages      Page[]
+
+  @@index([ownerId])
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        WorkspaceRole @default(VIEWER)
+  createdAt   DateTime      @default(now())
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+}
+
+model Page {
+  id            String           @id @default(cuid())
+  title         String           @default("Untitled")
+  icon          String?
+  coverImage    String?
+  content       Json?
+  parentId      String?
+  workspaceId   String
+  createdById   String
+  isPublic      Boolean          @default(false)
+  isFavorited   Boolean          @default(false)
+  isArchived    Boolean          @default(false)
+  fullWidth     Boolean          @default(false)
+  order         Float            @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  parent        Page?            @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children      Page[]           @relation("PageHierarchy")
+  workspace     Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy     User             @relation("PageCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  blocks        Block[]
+  databases     Database[]
+  comments      Comment[]
+  permissions   PagePermission[]
+
+  @@index([workspaceId, parentId])
+  @@index([workspaceId, isArchived])
+  @@index([workspaceId, isFavorited])
+}
+
+model Block {
+  id        String   @id @default(cuid())
+  pageId    String
+  type      String
+  content   Json
+  order     Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+}
+
+model Database {
+  id        String        @id @default(cuid())
+  pageId    String
+  title     String
+  schema    Json
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  page      Page          @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  rows      DatabaseRow[]
+
+  @@index([pageId])
+}
+
+model DatabaseRow {
+  id         String    @id @default(cuid())
+  databaseId String
+  properties Json
+  order      Float     @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  database   Database  @relation(fields: [databaseId], references: [id], onDelete: Cascade)
+
+  @@index([databaseId])
+}
+
+model Comment {
+  id         String     @id @default(cuid())
+  content    String
+  pageId     String
+  userId     String
+  parentId   String?
+  selection  Json?
+  createdAt  DateTime   @default(now())
+  resolvedAt DateTime?
+  page       Page       @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent     Comment?   @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies    Comment[]  @relation("CommentThread")
+
+  @@index([pageId])
+  @@index([parentId])
+}
+
+model PagePermission {
+  id        String   @id @default(cuid())
+  pageId    String
+  userId    String
+  role      PageRole @default(VIEWER)
+  createdAt DateTime @default(now())
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, userId])
+  @@index([userId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
