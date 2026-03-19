@@ -10,6 +10,7 @@ export type PageNode = {
   isArchived: boolean;
   parentId: string | null;
   workspaceId: string;
+  order?: number;
 };
 
 export function usePages(workspaceId: string) {

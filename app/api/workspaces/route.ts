@@ -38,13 +38,21 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   let payload: Record<string, unknown> = {};
-  try {
+  const contentType = request.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
     payload = (await request.json()) as Record<string, unknown>;
-  } catch {
+  } else if (
+    contentType.includes("application/x-www-form-urlencoded") ||
+    contentType.includes("multipart/form-data")
+  ) {
     const formData = await request.formData();
     payload = {
       name: String(formData.get("name") || "New Workspace"),
+      icon: formData.get("icon") ? String(formData.get("icon")) : undefined,
     };
+  } else {
+    payload = { name: "New Workspace" };
   }
 
   const parsed = workspaceCreateSchema.safeParse(payload);
