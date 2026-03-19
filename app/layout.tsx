@@ -11,8 +11,12 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Notion Clone",
-  description: "Production-ready Notion clone with Next.js",
+  title: "Folium",
+  description: "Folium is a note-taking workspace for pages, drawings, files, and rich writing.",
+  openGraph: {
+    title: "Folium",
+    description: "A modern writing workspace inspired by note-taking apps.",
+  },
 };
 
 export default function RootLayout({

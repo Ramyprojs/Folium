@@ -1,4 +1,4 @@
-# Notion Clone (Next.js 14)
+# Folium (Next.js 14)
 
 Production-ready Notion-style workspace app built with:
 - Next.js 14 App Router + TypeScript

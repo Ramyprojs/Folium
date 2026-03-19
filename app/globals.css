@@ -3,48 +3,48 @@
 @tailwind utilities;
 
 :root {
-  --background: 40 14% 98%;
-  --foreground: 30 7% 17%;
-  --muted: 40 20% 94%;
-  --muted-foreground: 25 5% 42%;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 10%;
+  --muted: 40 8% 96%;
+  --muted-foreground: 24 4% 39%;
   --popover: 0 0% 100%;
-  --popover-foreground: 30 7% 17%;
-  --card: 0 0% 100%;
-  --card-foreground: 30 7% 17%;
-  --border: 30 12% 88%;
-  --input: 30 12% 88%;
-  --primary: 27 11% 25%;
+  --popover-foreground: 0 0% 10%;
+  --card: 40 8% 96%;
+  --card-foreground: 0 0% 10%;
+  --border: 60 8% 90%;
+  --input: 60 8% 90%;
+  --primary: 262 83% 58%;
   --primary-foreground: 210 20% 98%;
-  --secondary: 30 16% 95%;
-  --secondary-foreground: 30 7% 17%;
-  --accent: 30 18% 93%;
-  --accent-foreground: 30 7% 17%;
+  --secondary: 40 8% 96%;
+  --secondary-foreground: 0 0% 10%;
+  --accent: 261 85% 95%;
+  --accent-foreground: 262 83% 40%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 20% 98%;
-  --ring: 27 11% 25%;
+  --ring: 262 83% 58%;
   --radius: 0.5rem;
 }
 
 .dark {
-  --background: 24 7% 11%;
-  --foreground: 40 13% 93%;
-  --muted: 26 8% 18%;
-  --muted-foreground: 30 7% 64%;
-  --popover: 24 7% 11%;
+  --background: 0 0% 10%;
+  --foreground: 60 12% 92%;
+  --muted: 0 0% 13%;
+  --muted-foreground: 40 7% 67%;
+  --popover: 0 0% 10%;
   --popover-foreground: 210 20% 98%;
-  --card: 24 7% 12%;
-  --card-foreground: 40 13% 93%;
-  --border: 24 8% 20%;
-  --input: 24 8% 20%;
-  --primary: 40 13% 93%;
-  --primary-foreground: 24 7% 12%;
-  --secondary: 24 8% 20%;
+  --card: 0 0% 13%;
+  --card-foreground: 60 12% 92%;
+  --border: 60 3% 18%;
+  --input: 60 3% 18%;
+  --primary: 262 83% 58%;
+  --primary-foreground: 0 0% 99%;
+  --secondary: 0 0% 13%;
   --secondary-foreground: 210 20% 98%;
-  --accent: 24 8% 20%;
-  --accent-foreground: 210 20% 98%;
+  --accent: 263 46% 22%;
+  --accent-foreground: 260 80% 88%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 210 20% 98%;
-  --ring: 40 13% 93%;
+  --ring: 262 83% 58%;
 }
 
 * {
@@ -54,18 +54,79 @@
 body {
   @apply bg-background text-foreground min-h-screen;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(0.96rem, 0.94rem + 0.2vw, 1rem);
+  line-height: 1.75;
+}
+
+* {
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
 }
 
 .notion-editor .ProseMirror {
-  @apply text-[15px] leading-7;
+  @apply text-base leading-[1.75] font-normal;
 }
 
 .notion-editor .ProseMirror p {
   @apply my-1;
 }
 
+.notion-editor .ProseMirror .is-editor-empty:first-child::before {
+  content: "Press '/' for commands or start writing...";
+  @apply pointer-events-none float-left h-0 text-sm text-muted-foreground/75;
+}
+
 .notion-editor .ProseMirror h1 {
-  @apply mt-5 mb-2 text-3xl font-semibold;
+  font-size: clamp(2.2rem, 2rem + 1vw, 2.8rem);
+  letter-spacing: -0.02em;
+  @apply mt-5 mb-2 font-bold;
 }
 
 .notion-editor .ProseMirror h2 {
@@ -74,4 +135,13 @@ body {
 
 .notion-editor .ProseMirror blockquote {
   @apply border-l-4 border-muted pl-4 text-muted-foreground;
+}
+
+.notion-editor .ProseMirror > * {
+  border-left: 2px solid transparent;
+  padding-left: 0.25rem;
+}
+
+.notion-editor .ProseMirror > *:hover {
+  border-left-color: hsl(var(--accent-foreground) / 0.35);
 }

@@ -9,9 +9,9 @@ import Highlight from "@tiptap/extension-highlight";
 import Placeholder from "@tiptap/extension-placeholder";
 import HorizontalRule from "@tiptap/extension-horizontal-rule";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
-import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import { common, createLowlight } from "lowlight";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Bold,
   CheckSquare,
@@ -25,26 +25,37 @@ import {
   Palette,
   Paperclip,
   Quote,
-  X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useEditor as useAutoSaveEditor } from "@/hooks/useEditor";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { SketchPadModal } from "@/components/editor/sketch-pad-modal";
+import { AdvancedImage } from "@/components/editor/extensions/advanced-image";
 
 const lowlight = createLowlight(common);
 
 type TiptapEditorProps = {
   pageId: string;
+  workspaceId: string;
   content: Record<string, unknown>;
 };
 
-export function TiptapEditor({ pageId, content }: TiptapEditorProps): JSX.Element {
+type SlashItem = {
+  section: "Basic Blocks" | "Media" | "Database";
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  run: () => void;
+};
+
+export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps): JSX.Element {
   const { save } = useAutoSaveEditor(pageId);
   const [showSlashMenu, setShowSlashMenu] = useState(false);
+  const [slashQuery, setSlashQuery] = useState("");
+  const [slashActiveIndex, setSlashActiveIndex] = useState(0);
+  const [editorFocused, setEditorFocused] = useState(false);
   const [showDrawingPanel, setShowDrawingPanel] = useState(false);
-  const [drawingColor, setDrawingColor] = useState("#1f1f1f");
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const isDrawingRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const editor = useEditor({
@@ -57,16 +68,18 @@ export function TiptapEditor({ pageId, content }: TiptapEditorProps): JSX.Elemen
       Highlight,
       HorizontalRule,
       Link.configure({ openOnClick: true }),
-      Image.configure({ allowBase64: true }),
+      AdvancedImage.configure({ allowBase64: true }),
       CodeBlockLowlight.configure({ lowlight }),
-      Placeholder.configure({ placeholder: "Type '/' for commands" }),
+      Placeholder.configure({ placeholder: "Press '/' for commands or start writing..." }),
     ],
     content,
     editorProps: {
       attributes: {
-        class: "min-h-[500px] outline-none",
+        class: "min-h-[500px] outline-none caret-foreground",
       },
     },
+    onFocus: () => setEditorFocused(true),
+    onBlur: () => setEditorFocused(false),
     onUpdate: ({ editor: current }) => {
       save({ content: current.getJSON() as Record<string, unknown> });
     },
@@ -79,22 +92,69 @@ export function TiptapEditor({ pageId, content }: TiptapEditorProps): JSX.Elemen
     editor.commands.setContent(content);
   }, [content, editor]);
 
-  const slashActions = useMemo(
+  const slashActions = useMemo<SlashItem[]>(
     () => [
-      { label: "Heading", run: () => editor?.chain().focus().toggleHeading({ level: 1 }).run() },
-      { label: "Bullet List", run: () => editor?.chain().focus().toggleBulletList().run() },
-      { label: "Todo List", run: () => editor?.chain().focus().toggleTaskList().run() },
-      { label: "Quote", run: () => editor?.chain().focus().toggleBlockquote().run() },
-      { label: "Code Block", run: () => editor?.chain().focus().toggleCodeBlock().run() },
-      { label: "Divider", run: () => editor?.chain().focus().setHorizontalRule().run() },
       {
-        label: "Drawing",
-        run: () => {
-          setShowDrawingPanel(true);
-        },
+        section: "Basic Blocks",
+        name: "Text",
+        description: "Plain paragraph text",
+        icon: <Bold className="h-4 w-4" />,
+        run: () => editor?.chain().focus().setParagraph().run(),
       },
       {
-        label: "Image URL",
+        section: "Basic Blocks",
+        name: "Heading 1",
+        description: "Large section heading",
+        icon: <Heading1 className="h-4 w-4" />,
+        run: () => editor?.chain().focus().toggleHeading({ level: 1 }).run(),
+      },
+      {
+        section: "Basic Blocks",
+        name: "Heading 2",
+        description: "Medium section heading",
+        icon: <Heading1 className="h-4 w-4" />,
+        run: () => editor?.chain().focus().toggleHeading({ level: 2 }).run(),
+      },
+      {
+        section: "Basic Blocks",
+        name: "Heading 3",
+        description: "Small section heading",
+        icon: <Heading1 className="h-4 w-4" />,
+        run: () => editor?.chain().focus().toggleHeading({ level: 3 }).run(),
+      },
+      {
+        section: "Basic Blocks",
+        name: "Bulleted List",
+        description: "Create a simple bullet list",
+        icon: <List className="h-4 w-4" />,
+        run: () => editor?.chain().focus().toggleBulletList().run(),
+      },
+      {
+        section: "Basic Blocks",
+        name: "Numbered List",
+        description: "Create an ordered list",
+        icon: <List className="h-4 w-4" />,
+        run: () => editor?.chain().focus().toggleOrderedList().run(),
+      },
+      {
+        section: "Basic Blocks",
+        name: "To-do List",
+        description: "Track tasks with checkboxes",
+        icon: <ListChecks className="h-4 w-4" />,
+        run: () => editor?.chain().focus().toggleTaskList().run(),
+      },
+      {
+        section: "Basic Blocks",
+        name: "Quote",
+        description: "Capture a quote with emphasis",
+        icon: <Quote className="h-4 w-4" />,
+        run: () => editor?.chain().focus().toggleBlockquote().run(),
+      },
+      {
+        section: "Media",
+        name: "Image",
+        description: "Insert an image from URL",
+        icon: <ImagePlus className="h-4 w-4" />,
         run: () => {
           const url = window.prompt("Paste image URL");
           if (url) {
@@ -102,55 +162,89 @@ export function TiptapEditor({ pageId, content }: TiptapEditorProps): JSX.Elemen
           }
         },
       },
+      {
+        section: "Media",
+        name: "Drawing",
+        description: "Open the drawing canvas",
+        icon: <Palette className="h-4 w-4" />,
+        run: () => setShowDrawingPanel(true),
+      },
+      {
+        section: "Media",
+        name: "Divider",
+        description: "Insert a horizontal divider",
+        icon: <Minus className="h-4 w-4" />,
+        run: () => editor?.chain().focus().setHorizontalRule().run(),
+      },
+      {
+        section: "Media",
+        name: "Code Block",
+        description: "Display code with formatting",
+        icon: <Code2 className="h-4 w-4" />,
+        run: () => editor?.chain().focus().toggleCodeBlock().run(),
+      },
+      {
+        section: "Database",
+        name: "Table",
+        description: "Insert an inline table block",
+        icon: <List className="h-4 w-4" />,
+        run: () =>
+          editor
+            ?.chain()
+            .focus()
+            .insertContent({ type: "paragraph", content: [{ type: "text", text: "[Table block placeholder]" }] })
+            .run(),
+      },
+      {
+        section: "Database",
+        name: "Board",
+        description: "Insert a board block",
+        icon: <List className="h-4 w-4" />,
+        run: () =>
+          editor
+            ?.chain()
+            .focus()
+            .insertContent({ type: "paragraph", content: [{ type: "text", text: "[Board block placeholder]" }] })
+            .run(),
+      },
+      {
+        section: "Database",
+        name: "Gallery",
+        description: "Insert a gallery block",
+        icon: <List className="h-4 w-4" />,
+        run: () =>
+          editor
+            ?.chain()
+            .focus()
+            .insertContent({ type: "paragraph", content: [{ type: "text", text: "[Gallery block placeholder]" }] })
+            .run(),
+      },
     ],
     [editor],
   );
 
-  const getCanvasContext = (): CanvasRenderingContext2D | null => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return null;
+  const filteredSlash = useMemo(() => {
+    const q = slashQuery.trim().toLowerCase();
+    if (!q) {
+      return slashActions;
     }
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      return null;
-    }
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = drawingColor;
-    return ctx;
-  };
+    return slashActions.filter(
+      (action) =>
+        action.name.toLowerCase().includes(q) ||
+        action.description.toLowerCase().includes(q) ||
+        action.section.toLowerCase().includes(q),
+    );
+  }, [slashActions, slashQuery]);
 
-  const getPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return { x: 0, y: 0 };
-    }
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    };
-  };
+  useEffect(() => {
+    setSlashActiveIndex(0);
+  }, [slashQuery]);
 
-  const clearDrawing = () => {
-    const canvas = canvasRef.current;
-    const ctx = getCanvasContext();
-    if (!canvas || !ctx) {
+  const saveDrawingAsImage = async (dataUrl: string) => {
+    if (!editor) {
       return;
     }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  };
-
-  const saveDrawingAsImage = () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !editor) {
-      return;
-    }
-    const dataUrl = canvas.toDataURL("image/png");
     editor.chain().focus().setImage({ src: dataUrl, alt: "Drawing" }).run();
-    clearDrawing();
     setShowDrawingPanel(false);
   };
 
@@ -193,60 +287,131 @@ export function TiptapEditor({ pageId, content }: TiptapEditorProps): JSX.Elemen
 
   return (
     <div
+      data-workspace-id={workspaceId}
       className="notion-editor rounded-xl border bg-background p-4 shadow-sm"
       onKeyDown={(event) => {
         if (event.key === "/") {
           setShowSlashMenu(true);
+          setSlashQuery("");
+        }
+
+        if (!showSlashMenu) {
+          return;
+        }
+
+        if (event.key === "Escape") {
+          event.preventDefault();
+          setShowSlashMenu(false);
+          setSlashQuery("");
+        }
+
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          setSlashActiveIndex((prev) => Math.min(prev + 1, Math.max(filteredSlash.length - 1, 0)));
+        }
+
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          setSlashActiveIndex((prev) => Math.max(prev - 1, 0));
+        }
+
+        if (event.key === "Enter" && filteredSlash[slashActiveIndex]) {
+          event.preventDefault();
+          filteredSlash[slashActiveIndex].run();
+          setShowSlashMenu(false);
         }
       }}
     >
-      <div className="mb-3 flex flex-wrap gap-2 border-b pb-3">
-        <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleBold().run()}>
-          <Bold className="mr-1 h-3.5 w-3.5" /> Bold
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleItalic().run()}>
-          <Italic className="mr-1 h-3.5 w-3.5" /> Italic
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}>
-          <Heading1 className="mr-1 h-3.5 w-3.5" /> H1
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleBulletList().run()}>
-          <List className="mr-1 h-3.5 w-3.5" /> List
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleTaskList().run()}>
-          <ListChecks className="mr-1 h-3.5 w-3.5" /> Todo
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleBlockquote().run()}>
-          <Quote className="mr-1 h-3.5 w-3.5" /> Quote
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleCodeBlock().run()}>
-          <Code2 className="mr-1 h-3.5 w-3.5" /> Code
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().setHorizontalRule().run()}>
-          <Minus className="mr-1 h-3.5 w-3.5" /> Divider
-        </Button>
-      </div>
+      <AnimatePresence>
+        {editorFocused && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.2 }}
+            className="mb-3 flex flex-wrap gap-2 border-b pb-3"
+          >
+            <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleBold().run()}>
+              <Bold className="mr-1 h-3.5 w-3.5" /> Bold
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleItalic().run()}>
+              <Italic className="mr-1 h-3.5 w-3.5" /> Italic
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}>
+              <Heading1 className="mr-1 h-3.5 w-3.5" /> H1
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleBulletList().run()}>
+              <List className="mr-1 h-3.5 w-3.5" /> List
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleTaskList().run()}>
+              <ListChecks className="mr-1 h-3.5 w-3.5" /> Todo
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleBlockquote().run()}>
+              <Quote className="mr-1 h-3.5 w-3.5" /> Quote
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleCodeBlock().run()}>
+              <Code2 className="mr-1 h-3.5 w-3.5" /> Code
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().setHorizontalRule().run()}>
+              <Minus className="mr-1 h-3.5 w-3.5" /> Divider
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {showSlashMenu && (
-        <div className="mb-3 rounded-md border bg-background p-2">
-          <div className="mb-1 text-xs font-medium text-muted-foreground">Slash commands</div>
-          <div className="grid gap-1 sm:grid-cols-2">
-            {slashActions.map((action) => (
-              <button
-                key={action.label}
-                type="button"
-                className="rounded px-2 py-1 text-left text-sm hover:bg-accent"
-                onClick={() => {
-                  action.run();
-                  setShowSlashMenu(false);
-                }}
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showSlashMenu && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            className="mb-3 rounded-md border bg-background p-2"
+          >
+            <Input
+              placeholder="Filter commands"
+              value={slashQuery}
+              onChange={(event) => setSlashQuery(event.target.value)}
+              className="mb-2"
+              autoFocus
+            />
+            {(["Basic Blocks", "Media", "Database"] as const).map((section) => {
+              const items = filteredSlash.filter((entry) => entry.section === section);
+              if (items.length === 0) {
+                return null;
+              }
+
+              return (
+                <div key={section} className="mb-2">
+                  <p className="px-1 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{section}</p>
+                  <div className="grid gap-1">
+                    {items.map((action) => {
+                      const idx = filteredSlash.findIndex((entry) => entry.name === action.name);
+                      return (
+                        <button
+                          key={action.name}
+                          type="button"
+                          className={`flex items-start gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-accent ${slashActiveIndex === idx ? "bg-accent" : ""}`}
+                          onMouseEnter={() => setSlashActiveIndex(idx)}
+                          onClick={() => {
+                            action.run();
+                            setShowSlashMenu(false);
+                          }}
+                        >
+                          <span className="mt-0.5 text-muted-foreground">{action.icon}</span>
+                          <span>
+                            <span className="block font-medium">{action.name}</span>
+                            <span className="block text-xs text-muted-foreground">{action.description}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <EditorContent editor={editor} className="min-h-[420px]" />
 
@@ -261,66 +426,13 @@ export function TiptapEditor({ pageId, content }: TiptapEditorProps): JSX.Elemen
         }}
       />
 
-      {showDrawingPanel && (
-        <div className="fixed inset-0 z-40 bg-black/20 p-4 backdrop-blur-sm">
-          <div className="mx-auto mt-10 w-full max-w-4xl rounded-xl border bg-background p-4 shadow-xl">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-medium">Sketch Pad</p>
-              <Button variant="ghost" size="sm" onClick={() => setShowDrawingPanel(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <canvas
-              ref={canvasRef}
-              width={900}
-              height={420}
-              className="w-full rounded-lg border bg-white"
-              onPointerDown={(event) => {
-                const ctx = getCanvasContext();
-                if (!ctx) {
-                  return;
-                }
-                isDrawingRef.current = true;
-                const point = getPoint(event);
-                ctx.beginPath();
-                ctx.moveTo(point.x, point.y);
-              }}
-              onPointerMove={(event) => {
-                if (!isDrawingRef.current) {
-                  return;
-                }
-                const ctx = getCanvasContext();
-                if (!ctx) {
-                  return;
-                }
-                const point = getPoint(event);
-                ctx.lineTo(point.x, point.y);
-                ctx.stroke();
-              }}
-              onPointerUp={() => {
-                isDrawingRef.current = false;
-              }}
-              onPointerLeave={() => {
-                isDrawingRef.current = false;
-              }}
-            />
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <input
-                type="color"
-                value={drawingColor}
-                onChange={(event) => setDrawingColor(event.target.value)}
-                className="h-9 w-10 rounded border"
-              />
-              <Button size="sm" variant="outline" onClick={clearDrawing}>
-                Clear
-              </Button>
-              <Button size="sm" onClick={saveDrawingAsImage}>
-                Insert drawing
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <SketchPadModal
+        open={showDrawingPanel}
+        onCancel={() => setShowDrawingPanel(false)}
+        onSave={(dataUrl) => {
+          void saveDrawingAsImage(dataUrl);
+        }}
+      />
 
       <div className="fixed bottom-5 left-1/2 z-30 -translate-x-1/2 rounded-2xl border bg-background/95 p-2 shadow-lg backdrop-blur">
         <div className="flex items-center gap-1">
@@ -330,6 +442,7 @@ export function TiptapEditor({ pageId, content }: TiptapEditorProps): JSX.Elemen
           <Button
             size="sm"
             variant="ghost"
+            className="transition-colors hover:bg-accent"
             onClick={() => {
               fileInputRef.current?.click();
             }}
@@ -339,6 +452,7 @@ export function TiptapEditor({ pageId, content }: TiptapEditorProps): JSX.Elemen
           <Button
             size="sm"
             variant="ghost"
+            className="transition-colors hover:bg-accent"
             onClick={() => {
               const url = window.prompt("Paste image URL");
               if (url) {
@@ -348,7 +462,7 @@ export function TiptapEditor({ pageId, content }: TiptapEditorProps): JSX.Elemen
           >
             <ImagePlus className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setShowDrawingPanel(true)}>
+          <Button size="sm" variant="ghost" className="transition-colors hover:bg-accent" onClick={() => setShowDrawingPanel(true)}>
             <Palette className="h-4 w-4" />
           </Button>
         </div>
