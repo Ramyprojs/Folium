@@ -1,4 +1,5 @@
 import { hash } from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { normalizeEmail } from "@/lib/dev-auth";
 import { prisma } from "@/lib/prisma";
@@ -67,6 +68,23 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (error) {
     console.error("Signup failed", error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2021" || error.code === "P2022") {
+        return NextResponse.json(
+          { error: "Database is not initialized yet. Run Prisma migrations and redeploy." },
+          { status: 500 },
+        );
+      }
+    }
+
+    if (error instanceof Prisma.PrismaClientInitializationError) {
+      return NextResponse.json(
+        { error: "Cannot connect to database. Check DATABASE_URL and Neon credentials." },
+        { status: 500 },
+      );
+    }
+
     return NextResponse.json({ error: "Failed to create account" }, { status: 500 });
   }
 }
