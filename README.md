@@ -1,147 +1,127 @@
-# Folium (Next.js 14)
+# Folium
 
-Production-ready Notion-style workspace app built with:
-- Next.js 14 App Router + TypeScript
-- Tailwind CSS + reusable shadcn-style UI primitives
-- Prisma + PostgreSQL
-- NextAuth (Credentials + Google OAuth)
-- Tiptap rich text editor
-- Zustand + TanStack Query
-- Framer Motion interactions
-- Cloudinary upload API
+Folium is a modern, Notion-inspired workspace app built with Next.js, Prisma, and Tiptap. It supports collaborative-style page organization, rich content editing, authentication, shareable pages, and production deployment on Vercel.
 
-## Features Implemented
+## Tech Stack
+
+- Next.js 15 (App Router) + TypeScript
+- React 18 + Tailwind CSS
+- Prisma + PostgreSQL (Neon/Supabase compatible)
+- NextAuth (Credentials + optional Google OAuth)
+- Tiptap editor with custom advanced image extension
+- TanStack Query + Zustand
+- Framer Motion
+- Cloudinary upload pipeline
+
+## Core Features
+
+### Workspace and Page Management
+
+- Multi-workspace model with owner/member roles
+- Hierarchical page tree (nested pages)
+- Favorite, archive, move, and share actions
+- Public page sharing endpoint
+
+### Rich Editing Experience
+
+- Tiptap-based editor with headings, lists, tasks, quote, code, divider, links
+- Slash command UI for fast block insertion
+- Advanced image node with resize, crop, align, lightbox, replace, caption
+- Drawing pad export/insert workflow
+- Debounced autosave
+
+### Floating Notes (Productivity Layer)
+
+- Draggable floating notes on workspace pages
+- Resize, minimize, maximize, close
+- Snap/dock to corners
+- Pin note always-on-top
+- Per-note customization:
+  - font family and font size
+  - light/dark note theme
+  - note background color
+  - note opacity
+- Multi-note support with independent state
+- Keyboard shortcut: `Cmd/Ctrl + Shift + N` to create a new note
+
+### Uploads
+
+- Image uploads from editor and cover picker
+- Generic file uploads (non-image files inserted as links)
+- Client-side large-image normalization for better reliability
+- Graceful fallback behavior when uploads are partially configured
 
 ### Authentication
-- Email/password signup and login
-- Google OAuth via NextAuth
-- JWT session strategy
-- Auth middleware protection for app routes
 
-### Workspace + Pages
-- Create and list workspaces
-- Role-based workspace membership (OWNER/EDITOR/VIEWER)
-- Invite/remove members via API
-- Page CRUD, archive/favorite/share toggles
-- Nested parent-child page structure with move API
-- Public page share endpoint
+- Email/password signup/login
+- Optional Google OAuth
+- JWT-based sessions via NextAuth
+- Route protection for app surfaces
 
-### Notion-style UI
-- Left sidebar with page list and resize handle
-- Workspace page route: /[workspaceId]/[pageId]
-- Top toolbar for page title/edit/share/favorite/archive
-- Search modal (Cmd/Ctrl + K pathway)
-- Settings pages: profile, workspace, billing (UI)
+## Getting Started
 
-### Rich Editor
-- Tiptap editor with:
-  - headings/paragraph/list/task list
-  - underline/highlight
-  - horizontal rule
-  - code block (lowlight)
-- Debounced autosave every 1.5s to page JSON content
-
-### Database + Comments APIs
-- Inline database row CRUD APIs
-- Comments APIs:
-  - GET/POST /api/comments/[id] (treat id as page id)
-  - PATCH/DELETE /api/comments/[id] (treat id as comment id)
-
-### Deployment
-- .env example provided
-- Multi-stage Dockerfile
-- Prisma migrations can be applied separately before boot
-
-## Quick Start
-
-1. Install dependencies
+### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-Use Node 20 LTS for local builds and production images.
-
-2. Copy environment file
+### 2. Configure environment
 
 ```bash
 cp .env.example .env
 ```
 
-3. Configure required env vars in .env
+Minimum required variables:
 
-- DATABASE_URL
-- NEXTAUTH_SECRET
-- NEXTAUTH_URL
-- GOOGLE_CLIENT_ID
-- GOOGLE_CLIENT_SECRET
-- CLOUDINARY_CLOUD_NAME
-- CLOUDINARY_API_KEY
-- CLOUDINARY_API_SECRET
-- NEXT_PUBLIC_UNSPLASH_ACCESS_KEY (optional, enables Unsplash cover search)
-- AUTH_DISABLED=false (optional; local `next dev` only convenience flag)
+- `DATABASE_URL`
+- `NEXTAUTH_SECRET`
 
-4. Run migrations + generate client
+Recommended in production:
 
-```bash
-npm run prisma:migrate
-npm run prisma:generate
-```
+- `NEXTAUTH_URL`
+- `AUTH_DISABLED=false`
 
-5. Start dev server
+Optional integrations:
 
-```bash
-npm run dev
-```
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+- `NEXT_PUBLIC_UNSPLASH_ACCESS_KEY`
 
-Open http://localhost:3000
-
-## Docker
-
-Build and run:
-
-```bash
-docker build -t notion-clone .
-docker run --env-file .env -p 3000:3000 notion-clone
-```
-
-For production rollouts outside Docker, apply migrations before boot:
+### 3. Apply database migrations
 
 ```bash
 npm run prisma:migrate:deploy
 ```
 
-Then start the app:
+For local development, `prisma:migrate` is also available.
+
+### 4. Run locally
 
 ```bash
-npm run start
+npm run dev
 ```
 
-## API Routes
+Open `http://localhost:3000`.
 
-- /api/auth/[...nextauth]
-- /api/signup
-- /api/workspaces
-- /api/workspaces/[id]
-- /api/workspaces/[id]/members
-- /api/pages
-- /api/pages/[id]
-- /api/pages/[id]/children
-- /api/pages/[id]/move
-- /api/pages/[id]/archive
-- /api/pages/[id]/favorite
-- /api/pages/[id]/share
-- /api/databases/[id]/rows
-- /api/databases/[id]/rows/[rid]
-- /api/search
-- /api/upload
-- /api/comments/[id]
+## Production Deployment (Vercel + Neon)
 
-## Notes
+1. Import repository into Vercel.
+2. Set required environment variables in Vercel project settings.
+3. Run Prisma migrations against your production database:
 
-- Comment endpoint is consolidated under one dynamic segment due Next.js App Router slug constraints.
-- Search currently uses title + JSON contains filter and returns recent matching pages.
-- Some advanced Notion interactions (realtime cursors, full slash command palette graph, advanced relational formula engine, full drag reparenting UX across all blocks) are scaffolded structurally and can be extended in-place.
+```bash
+DATABASE_URL="<your_db_url>" npx prisma migrate deploy
+```
+
+4. Redeploy.
+
+### Important Upload Note
+
+For full binary upload support in production, configure Cloudinary variables. Without Cloudinary, some file flows are intentionally restricted/fallback-only.
 
 ## Scripts
 
@@ -155,3 +135,17 @@ npm run prisma:migrate
 npm run prisma:migrate:deploy
 npm run prisma:studio
 ```
+
+## API Surface (High-Level)
+
+- Auth: `/api/auth/[...nextauth]`, `/api/signup`
+- Workspaces: `/api/workspaces`, `/api/workspaces/[id]`, `/api/workspaces/[id]/members`
+- Pages: `/api/pages`, `/api/pages/[id]`, `/api/pages/[id]/children`, `/api/pages/[id]/move`, `/api/pages/[id]/archive`, `/api/pages/[id]/favorite`, `/api/pages/[id]/share`
+- Data rows: `/api/databases/[id]/rows`, `/api/databases/[id]/rows/[rid]`
+- Search: `/api/search`
+- Upload: `/api/upload`
+- Comments: `/api/comments/[id]`
+
+## Project Status
+
+Folium is actively evolving, with emphasis on practical editing workflows, deployability, and user-facing UX polish across desktop and mobile.
