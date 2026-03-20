@@ -1,9 +1,31 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ensureDemoUser } from "@/lib/dev-auth";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 
 export default async function DashboardPage(): Promise<JSX.Element> {
+  async function createWorkspaceAction(): Promise<void> {
+    "use server";
+
+    const userId = await ensureDemoUser();
+
+    const workspace = await prisma.workspace.create({
+      data: {
+        name: "New Workspace",
+        ownerId: userId,
+        members: {
+          create: {
+            userId,
+            role: "OWNER",
+          },
+        },
+      },
+    });
+
+    redirect(`/${workspace.id}`);
+  }
+
   const userId = await ensureDemoUser();
 
   const memberships = await prisma.workspaceMember.findMany({
@@ -19,7 +41,7 @@ export default async function DashboardPage(): Promise<JSX.Element> {
             <h1 className="text-3xl font-semibold tracking-tight">Workspace Hub</h1>
             <p className="mt-1 text-sm text-muted-foreground">Open a workspace and continue writing.</p>
           </div>
-          <form action="/api/workspaces" method="post">
+          <form action={createWorkspaceAction}>
             <Button type="submit" className="bg-[#2f2f2f] text-white hover:bg-[#1f1f1f] dark:bg-[#f3f3f3] dark:text-black">
               New workspace
             </Button>
