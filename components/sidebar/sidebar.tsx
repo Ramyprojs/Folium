@@ -21,6 +21,7 @@ export function Sidebar({ workspaceId, activePageId }: SidebarProps): JSX.Elemen
   const { isOpen, width, setOpen, setWidth } = useSidebarStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(1280);
   const router = useRouter();
   const queryClient = useQueryClient();
   const { resolvedTheme, theme, setTheme } = useTheme();
@@ -43,6 +44,18 @@ export function Sidebar({ workspaceId, activePageId }: SidebarProps): JSX.Elemen
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    const syncViewportWidth = () => {
+      setViewportWidth(window.innerWidth);
+    };
+
+    syncViewportWidth();
+    window.addEventListener("resize", syncViewportWidth);
+    return () => window.removeEventListener("resize", syncViewportWidth);
+  }, []);
+
+  const panelWidth = viewportWidth < 768 ? Math.min(Math.round(viewportWidth * 0.92), 360) : width;
 
   useEffect(() => {
     const handle = (event: KeyboardEvent) => {
@@ -68,7 +81,7 @@ export function Sidebar({ workspaceId, activePageId }: SidebarProps): JSX.Elemen
       )}
       <motion.aside
         initial={false}
-        animate={{ width: isOpen ? width : 0 }}
+        animate={{ width: isOpen ? panelWidth : 0 }}
         transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
         className="fixed inset-y-0 left-0 z-40 overflow-hidden border-r bg-card md:relative md:h-screen"
       >
@@ -143,6 +156,10 @@ export function Sidebar({ workspaceId, activePageId }: SidebarProps): JSX.Elemen
         <div
           className="absolute right-0 top-0 h-full w-1 cursor-col-resize bg-transparent hover:bg-border"
           onMouseDown={(event) => {
+            if (viewportWidth < 768) {
+              return;
+            }
+
             const startX = event.clientX;
             const startWidth = width;
 

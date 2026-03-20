@@ -258,7 +258,7 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
   return (
     <div
       data-workspace-id={workspaceId}
-      className="notion-editor rounded-xl border bg-background p-4 shadow-sm"
+      className="notion-editor rounded-xl border bg-background p-4 pb-24 shadow-sm md:pb-4"
       onKeyDown={(event) => {
         if (event.key === "/") {
           setShowSlashMenu(true);
@@ -404,7 +404,7 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
         }}
       />
 
-      <div className="fixed bottom-5 left-1/2 z-30 -translate-x-1/2 rounded-2xl border bg-background/95 p-2 shadow-lg backdrop-blur">
+      <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-30 w-[calc(100%-1rem)] max-w-md -translate-x-1/2 rounded-2xl border bg-background/95 p-2 shadow-lg backdrop-blur md:bottom-5 md:w-auto">
         <div className="flex items-center gap-1">
           <Button size="sm" variant="ghost" onClick={() => editor?.chain().focus().toggleTaskList().run()}>
             <CheckSquare className="h-4 w-4" />

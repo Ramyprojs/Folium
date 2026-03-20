@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useEditor } from "@/hooks/useEditor";
+import { uploadImageFile } from "@/lib/client-upload";
 import { useSidebarStore } from "@/store/sidebar";
 import { useRouter } from "next/navigation";
 
@@ -355,7 +356,7 @@ export function WorkspacePageClient({
 
   if (pageQuery.isError) {
     return (
-      <div className="mx-auto max-w-[720px] px-6 pb-16 pt-24">
+      <div className="mx-auto max-w-[720px] px-4 pb-16 pt-20 md:px-6 md:pt-24">
         <div className="rounded-xl border bg-background p-6 shadow-sm">
           <h1 className="text-2xl font-semibold">Page unavailable</h1>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -368,7 +369,7 @@ export function WorkspacePageClient({
 
   if (pageQuery.isLoading || !pageQuery.data) {
     return (
-      <div className="mx-auto max-w-[720px] px-6 pb-16 pt-24">
+      <div className="mx-auto max-w-[720px] px-4 pb-16 pt-20 md:px-6 md:pt-24">
         <div className="shimmer mb-5 h-14 w-16 rounded-xl bg-muted" />
         <div className="shimmer mb-4 h-14 w-2/3 rounded-md bg-muted" />
         <div className="shimmer mb-3 h-5 w-1/3 rounded-md bg-muted" />
@@ -388,20 +389,20 @@ export function WorkspacePageClient({
 
       <main className="flex-1 overflow-y-auto">
         <header className="sticky top-0 z-10 border-b bg-background/70 backdrop-blur">
-          <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2.5">
+          <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 py-2.5 md:px-4">
             <Button variant="ghost" size="sm" onClick={() => setOpen(!isOpen)}>
               <span className="sr-only">{isOpen ? "Hide sidebar" : "Show sidebar"}</span>
               <Menu className="h-4 w-4" />
             </Button>
             <Input
               value={titleValue}
-              className="h-8 max-w-xl border-none bg-transparent px-2 text-sm font-medium shadow-none focus-visible:ring-0"
+              className="h-8 min-w-0 flex-1 max-w-xl border-none bg-transparent px-2 text-sm font-medium shadow-none focus-visible:ring-0"
               onChange={(event) => {
                 setTitleValue(event.target.value);
                 save({ title: event.target.value });
               }}
             />
-            <div className="ml-auto mr-1 text-xs text-muted-foreground">
+            <div className="ml-auto mr-1 hidden text-xs text-muted-foreground sm:block">
               {saveState === "saving" && (
                 <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
                   <Sparkles className="h-3.5 w-3.5 animate-pulse" /> Saving...
@@ -413,7 +414,7 @@ export function WorkspacePageClient({
                 </span>
               )}
             </div>
-            <Button aria-label="Share page" title="Share page" variant="ghost" size="sm" onClick={() => setShareOpen(true)}>
+            <Button aria-label="Share page" title="Share page" variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => setShareOpen(true)}>
               <Share2 className="h-4 w-4" />
             </Button>
             <Button
@@ -421,6 +422,7 @@ export function WorkspacePageClient({
               title="Toggle favorite"
               variant="ghost"
               size="sm"
+              className="hidden sm:inline-flex"
               onClick={async () => {
                 const response = await fetch(`/api/pages/${pageId}/favorite`, { method: "PATCH" });
                 if (!response.ok) {
@@ -440,9 +442,14 @@ export function WorkspacePageClient({
               title="Archive page"
               variant="ghost"
               size="sm"
+              className="hidden sm:inline-flex"
               onClick={async () => {
-                await fetch(`/api/pages/${pageId}/archive`, { method: "PATCH" });
-                window.location.href = `/${workspaceId}`;
+                const response = await fetch(`/api/pages/${pageId}/archive`, { method: "PATCH" });
+                if (!response.ok) {
+                  return;
+                }
+                await queryClient.invalidateQueries({ queryKey: ["pages", workspaceId] });
+                router.push(`/${workspaceId}`);
               }}
             >
               <Trash2 className="h-4 w-4" />
@@ -488,8 +495,8 @@ export function WorkspacePageClient({
           transition={{ duration: 0.2 }}
           className={
             pageQuery.data.page.fullWidth
-              ? "w-full px-8 pb-20 pt-20"
-              : "mx-auto max-w-[720px] px-6 pb-20 pt-20"
+              ? "w-full px-4 pb-24 pt-10 md:px-8 md:pb-20 md:pt-20"
+              : "mx-auto max-w-[720px] px-4 pb-24 pt-10 md:px-6 md:pb-20 md:pt-20"
           }
         >
           <div
@@ -659,7 +666,7 @@ export function WorkspacePageClient({
                 initial={{ y: 16, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 16, opacity: 0 }}
-                className="mx-auto mt-16 w-full max-w-3xl rounded-xl border bg-background p-4 shadow-xl"
+                className="mx-auto mt-8 max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl border bg-background p-3 shadow-xl md:mt-16 md:p-4"
               >
                 <div className="mb-3 flex items-center justify-between">
                   <div className="inline-flex flex-wrap rounded-md border p-1 text-sm">
@@ -745,20 +752,13 @@ export function WorkspacePageClient({
                           const file = event.target.files?.[0];
                           if (!file) return;
                           setUploadError(null);
-                          const formData = new FormData();
-                          formData.append("file", file);
-                          const response = await fetch("/api/upload", { method: "POST", body: formData });
-                          const data = (await response.json().catch(() => ({}))) as {
-                            error?: string;
-                            url?: string;
-                          };
-                          if (!response.ok) {
-                            setUploadError(data.error || "Upload failed");
-                            return;
-                          }
-                          if (data.url) {
-                            applyImageCover(data.url, 50);
+                          try {
+                            const uploadedUrl = await uploadImageFile(file);
+                            applyImageCover(uploadedUrl, 50);
                             setCoverPickerOpen(false);
+                          } catch (error) {
+                            setUploadError(error instanceof Error ? error.message : "Upload failed");
+                            return;
                           }
                         }}
                       />
