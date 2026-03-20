@@ -1,9 +1,15 @@
-import { getAuthSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getCurrentUserId } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 
 export default async function ProfileSettingsPage(): Promise<JSX.Element> {
-  const session = await getAuthSession();
-  const user = await prisma.user.findUnique({ where: { id: session?.user.id } });
+  const userId = await getCurrentUserId();
+
+  if (!userId) {
+    redirect("/login");
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">

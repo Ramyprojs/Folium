@@ -16,49 +16,80 @@ export type SaveState = "idle" | "saving" | "saved" | "error";
 export function useEditor(pageId: string) {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const doneTimer = useRef<NodeJS.Timeout | null>(null);
+  const pendingPayload = useRef<SavePayload | null>(null);
+  const flushInFlight = useRef(false);
   const queryClient = useQueryClient();
 
-  const persist = useMemo(
-    () =>
-      debounce(async (payload: SavePayload) => {
-        try {
-          const currentPage = queryClient.getQueryData<{ page?: { workspaceId?: string } }>(["page", pageId]);
-          const workspaceId = currentPage?.page?.workspaceId;
+  const flushQueue = useMemo(
+    () => async () => {
+      if (flushInFlight.current) {
+        return;
+      }
 
-          const response = await fetch(`/api/pages/${pageId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
+      flushInFlight.current = true;
 
-          if (!response.ok) {
-            setSaveState("error");
+      try {
+        while (pendingPayload.current) {
+          const payload = pendingPayload.current;
+          pendingPayload.current = null;
+
+          try {
+            const currentPage = queryClient.getQueryData<{ page?: { workspaceId?: string } }>(["page", pageId]);
+            const workspaceId = currentPage?.page?.workspaceId;
+
+            const response = await fetch(`/api/pages/${pageId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+              setSaveState("error");
+              await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
+              if (workspaceId) {
+                await queryClient.invalidateQueries({ queryKey: ["pages", workspaceId] });
+              }
+              continue;
+            }
+
+            setSaveState("saved");
+            if (doneTimer.current) {
+              clearTimeout(doneTimer.current);
+            }
+            doneTimer.current = setTimeout(() => setSaveState("idle"), 2000);
             await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
             if (workspaceId) {
               await queryClient.invalidateQueries({ queryKey: ["pages", workspaceId] });
             }
-            return;
-          }
-
-          setSaveState("saved");
-          if (doneTimer.current) {
-            clearTimeout(doneTimer.current);
-          }
-          doneTimer.current = setTimeout(() => setSaveState("idle"), 2000);
-          await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
-          if (workspaceId) {
-            await queryClient.invalidateQueries({ queryKey: ["pages", workspaceId] });
-          }
-        } catch {
-          setSaveState("error");
-          await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
-          const currentPage = queryClient.getQueryData<{ page?: { workspaceId?: string } }>(["page", pageId]);
-          if (currentPage?.page?.workspaceId) {
-            await queryClient.invalidateQueries({ queryKey: ["pages", currentPage.page.workspaceId] });
+          } catch {
+            setSaveState("error");
+            await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
+            const currentPage = queryClient.getQueryData<{ page?: { workspaceId?: string } }>(["page", pageId]);
+            if (currentPage?.page?.workspaceId) {
+              await queryClient.invalidateQueries({ queryKey: ["pages", currentPage.page.workspaceId] });
+            }
           }
         }
-      }, 700),
+      } finally {
+        flushInFlight.current = false;
+        if (pendingPayload.current) {
+          void flushQueue();
+        }
+      }
+    },
     [pageId, queryClient],
+  );
+
+  const persist = useMemo(
+    () =>
+      debounce((payload: SavePayload) => {
+        pendingPayload.current = {
+          ...(pendingPayload.current || {}),
+          ...payload,
+        };
+        void flushQueue();
+      }, 700),
+    [flushQueue],
   );
 
   const save = useMemo(

@@ -1,14 +1,12 @@
 import { redirect } from "next/navigation";
-import { getAuthSession } from "@/lib/auth";
+import { authDisabled, getCurrentUserId } from "@/lib/api";
 
-const authDisabled =
-  process.env.AUTH_DISABLED === "true" ||
-  (process.env.NODE_ENV !== "production" && process.env.AUTH_DISABLED !== "false");
+export const dynamic = "force-dynamic";
 
 export default async function MainLayout({ children }: { children: React.ReactNode }): Promise<JSX.Element> {
   if (!authDisabled) {
-    const session = await getAuthSession();
-    if (!session?.user?.id) {
+    const userId = await getCurrentUserId();
+    if (!userId) {
       redirect("/login");
     }
   }

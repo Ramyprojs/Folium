@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 type Params = { params: { id: string } };
 
-export async function PATCH(_: Request, { params }: Params): Promise<NextResponse> {
+export async function PATCH(request: Request, { params }: Params): Promise<NextResponse> {
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
@@ -20,9 +20,12 @@ export async function PATCH(_: Request, { params }: Params): Promise<NextRespons
     return errorResponse("Forbidden", 403);
   }
 
+  const body = (await request.json().catch(() => ({}))) as { isPublic?: boolean };
+  const nextIsPublic = typeof body.isPublic === "boolean" ? body.isPublic : !page.isPublic;
+
   const updated = await prisma.page.update({
     where: { id: params.id },
-    data: { isPublic: !page.isPublic },
+    data: { isPublic: nextIsPublic },
   });
 
   return NextResponse.json({ page: updated });

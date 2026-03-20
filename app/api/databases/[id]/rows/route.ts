@@ -53,7 +53,10 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
     return errorResponse("Forbidden", 403);
   }
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+  if (!body) {
+    return errorResponse("Invalid JSON body", 400);
+  }
   const parsed = databaseRowSchema.safeParse(body);
   if (!parsed.success) {
     return errorResponse("Invalid payload", 422);

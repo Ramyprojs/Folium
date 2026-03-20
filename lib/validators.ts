@@ -18,7 +18,7 @@ export const workspacePatchSchema = z.object({
 
 export const inviteMemberSchema = z.object({
   email: z.string().email(),
-  role: z.enum(["OWNER", "EDITOR", "VIEWER"]).default("VIEWER"),
+  role: z.enum(["EDITOR", "VIEWER"]).default("VIEWER"),
 });
 
 export const pageCreateSchema = z.object({

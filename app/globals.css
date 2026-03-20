@@ -18,9 +18,9 @@
   --warning: #d97706;
   --danger: #dc2626;
   --info: #2563eb;
-  --font-display: var(--font-playfair), "Playfair Display", serif;
-  --font-body: var(--font-inter), "Inter", sans-serif;
-  --font-mono: var(--font-jetbrains), "JetBrains Mono", monospace;
+  --font-display: var(--font-playfair, "Iowan Old Style"), "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --font-body: var(--font-inter, "Avenir Next"), "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-jetbrains, "SFMono-Regular"), "JetBrains Mono", Menlo, monospace;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.14);
@@ -90,7 +90,11 @@ body {
   line-height: 1.75;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  cursor: none;
+}
+
+body.cursor-enhanced,
+body.cursor-enhanced * {
+  cursor: none !important;
 }
 
 * {

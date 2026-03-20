@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import Picker from "@emoji-mart/react";
@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useEditor } from "@/hooks/useEditor";
 import { useSidebarStore } from "@/store/sidebar";
+import { useRouter } from "next/navigation";
 
 type PageData = {
   id: string;
@@ -34,8 +35,10 @@ type PageData = {
   coverImage: string | null;
   content: Record<string, unknown>;
   isPublic: boolean;
+  isFavorited: boolean;
   fullWidth: boolean;
   updatedAt: string;
+  workspaceId: string;
   createdBy: { name: string };
 };
 
@@ -169,6 +172,7 @@ export default function WorkspacePage({
   const [coverLink, setCoverLink] = useState("");
   const [isDraggingCover, setIsDraggingCover] = useState(false);
   const [coverFocalY, setCoverFocalY] = useState(50);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [unsplashInput, setUnsplashInput] = useState("nature");
   const [unsplashQuery, setUnsplashQuery] = useState("nature");
   const [moreOpen, setMoreOpen] = useState(false);
@@ -177,6 +181,8 @@ export default function WorkspacePage({
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const coverFrameRef = useRef<HTMLDivElement | null>(null);
   const { save, saveState } = useEditor(params.pageId);
+  const queryClient = useQueryClient();
+  const router = useRouter();
   const unsplashAccessKey = process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY;
 
   const pageQuery = useQuery<{ page: PageData }>({
@@ -290,6 +296,12 @@ export default function WorkspacePage({
   }, [setOpen]);
 
   useEffect(() => {
+    if (pageQuery.data?.page.workspaceId && pageQuery.data.page.workspaceId !== params.workspaceId) {
+      router.replace(`/${pageQuery.data.page.workspaceId}/${pageQuery.data.page.id}`);
+    }
+  }, [pageQuery.data?.page.id, pageQuery.data?.page.workspaceId, params.workspaceId, router]);
+
+  useEffect(() => {
     setTitleValue(pageQuery.data?.page.title || "");
   }, [pageQuery.data?.page.title]);
 
@@ -334,6 +346,19 @@ export default function WorkspacePage({
     unsplashResults.isFetchingNextPage,
   ]);
 
+  if (pageQuery.isError) {
+    return (
+      <div className="mx-auto max-w-[720px] px-6 pb-16 pt-24">
+        <div className="rounded-xl border bg-background p-6 shadow-sm">
+          <h1 className="text-2xl font-semibold">Page unavailable</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            This page could not be loaded. It may have been removed, archived, or you may not have access.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (pageQuery.isLoading || !pageQuery.data) {
     return (
       <div className="mx-auto max-w-[720px] px-6 pb-16 pt-24">
@@ -358,6 +383,7 @@ export default function WorkspacePage({
         <header className="sticky top-0 z-10 border-b bg-background/70 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2.5">
             <Button variant="ghost" size="sm" onClick={() => setOpen(!isOpen)}>
+              <span className="sr-only">{isOpen ? "Hide sidebar" : "Show sidebar"}</span>
               <Menu className="h-4 w-4" />
             </Button>
             <Input
@@ -380,20 +406,31 @@ export default function WorkspacePage({
                 </span>
               )}
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setShareOpen(true)}>
+            <Button aria-label="Share page" title="Share page" variant="ghost" size="sm" onClick={() => setShareOpen(true)}>
               <Share2 className="h-4 w-4" />
             </Button>
             <Button
+              aria-label={pageQuery.data.page.isFavorited ? "Remove page from favorites" : "Add page to favorites"}
+              title="Toggle favorite"
               variant="ghost"
               size="sm"
               onClick={async () => {
-                await fetch(`/api/pages/${params.pageId}/favorite`, { method: "PATCH" });
-                pageQuery.refetch();
+                const response = await fetch(`/api/pages/${params.pageId}/favorite`, { method: "PATCH" });
+                if (!response.ok) {
+                  return;
+                }
+
+                await Promise.all([
+                  queryClient.invalidateQueries({ queryKey: ["page", params.pageId] }),
+                  queryClient.invalidateQueries({ queryKey: ["pages", params.workspaceId] }),
+                ]);
               }}
             >
               <Star className="h-4 w-4" />
             </Button>
             <Button
+              aria-label="Archive page"
+              title="Archive page"
               variant="ghost"
               size="sm"
               onClick={async () => {
@@ -404,7 +441,7 @@ export default function WorkspacePage({
               <Trash2 className="h-4 w-4" />
             </Button>
             <div className="relative">
-              <Button variant="ghost" size="sm" onClick={() => setMoreOpen((prev) => !prev)}>
+              <Button aria-label="Page actions" title="Page actions" variant="ghost" size="sm" onClick={() => setMoreOpen((prev) => !prev)}>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
               {moreOpen && (
@@ -559,6 +596,7 @@ export default function WorkspacePage({
           )}
           <div className="relative">
             <button
+              aria-label="Choose page icon"
               className={`-mt-10 mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl border bg-background text-2xl shadow-sm transition-transform ${iconBounce ? "animate-bounce" : ""}`}
               onClick={() => setIconPickerOpen((prev) => !prev)}
             >
@@ -699,10 +737,18 @@ export default function WorkspacePage({
                         onChange={async (event) => {
                           const file = event.target.files?.[0];
                           if (!file) return;
+                          setUploadError(null);
                           const formData = new FormData();
                           formData.append("file", file);
                           const response = await fetch("/api/upload", { method: "POST", body: formData });
-                          const data = await response.json();
+                          const data = (await response.json().catch(() => ({}))) as {
+                            error?: string;
+                            url?: string;
+                          };
+                          if (!response.ok) {
+                            setUploadError(data.error || "Upload failed");
+                            return;
+                          }
                           if (data.url) {
                             applyImageCover(data.url, 50);
                             setCoverPickerOpen(false);
@@ -730,6 +776,9 @@ export default function WorkspacePage({
                       </Button>
                     </div>
                   </div>
+                )}
+                {uploadError && coverTab === "upload" && (
+                  <p className="mt-3 text-sm text-red-500">{uploadError}</p>
                 )}
 
                 {coverTab === "unsplash" && (

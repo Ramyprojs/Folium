@@ -12,7 +12,10 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
     return userId;
   }
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+  if (!body) {
+    return errorResponse("Invalid JSON body", 400);
+  }
   const parsed = databaseRowSchema.partial().safeParse(body);
   if (!parsed.success) {
     return errorResponse("Invalid payload", 422);
@@ -41,7 +44,12 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
     data: {
       ...(parsed.data.order !== undefined ? { order: parsed.data.order } : {}),
       ...(parsed.data.properties !== undefined
-        ? { properties: parsed.data.properties as Prisma.InputJsonValue }
+        ? {
+            properties: {
+              ...(typeof existing.properties === "object" && existing.properties ? (existing.properties as Record<string, unknown>) : {}),
+              ...parsed.data.properties,
+            } as Prisma.InputJsonValue,
+          }
         : {}),
     },
   });

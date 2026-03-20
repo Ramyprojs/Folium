@@ -1,18 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getAuthSession } from "@/lib/auth";
-import { ensureDemoUser } from "@/lib/dev-auth";
+import { getCurrentUserId } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 
-const authDisabled =
-  process.env.AUTH_DISABLED === "true" ||
-  (process.env.NODE_ENV !== "production" && process.env.AUTH_DISABLED !== "false");
-
 export default async function DashboardPage(): Promise<JSX.Element> {
-  const userId = authDisabled
-    ? await ensureDemoUser()
-    : ((await getAuthSession())?.user?.id ?? null);
+  const userId = await getCurrentUserId();
 
   if (!userId) {
     redirect("/login");
@@ -21,9 +14,7 @@ export default async function DashboardPage(): Promise<JSX.Element> {
   async function createWorkspaceAction(): Promise<void> {
     "use server";
 
-    const actionUserId = authDisabled
-      ? await ensureDemoUser()
-      : ((await getAuthSession())?.user?.id ?? null);
+    const actionUserId = await getCurrentUserId();
 
     if (!actionUserId) {
       redirect("/login");

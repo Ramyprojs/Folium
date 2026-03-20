@@ -71,6 +71,14 @@ export function CustomCursor(): JSX.Element | null {
   }, []);
 
   useEffect(() => {
+    document.body.classList.toggle("cursor-enhanced", enabled);
+
+    return () => {
+      document.body.classList.remove("cursor-enhanced");
+    };
+  }, [enabled]);
+
+  useEffect(() => {
     if (!enabled) {
       return;
     }

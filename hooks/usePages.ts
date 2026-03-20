@@ -17,7 +17,7 @@ export function usePages(workspaceId: string) {
   return useQuery<{ pages: PageNode[] }>({
     queryKey: ["pages", workspaceId],
     queryFn: async () => {
-      const res = await fetch(`/api/search?q=&workspaceId=${workspaceId}`);
+      const res = await fetch(`/api/pages?workspaceId=${workspaceId}`);
       if (!res.ok) {
         throw new Error("Failed to load pages");
       }

@@ -53,14 +53,19 @@ function createOrb(width: number, height: number): Orb {
   };
 }
 
-export function AuthExperience({ initialMode }: { initialMode: AuthMode }): JSX.Element {
+export function AuthExperience({
+  initialMode,
+  googleAuthEnabled,
+}: {
+  initialMode: AuthMode;
+  googleAuthEnabled: boolean;
+}): JSX.Element {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(0);
-  const [forgotOpen, setForgotOpen] = useState(false);
   const [typeTagline, setTypeTagline] = useState("");
 
   const [name, setName] = useState("");
@@ -69,7 +74,6 @@ export function AuthExperience({ initialMode }: { initialMode: AuthMode }): JSX.
   const [confirmPassword, setConfirmPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState("");
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -376,7 +380,12 @@ export function AuthExperience({ initialMode }: { initialMode: AuthMode }): JSX.
                 type={showPassword ? "text" : "password"}
                 autoComplete={mode === "login" ? "current-password" : "new-password"}
                 rightAction={
-                  <button type="button" onClick={() => setShowPassword((prev) => !prev)} className="text-[var(--text-secondary)]">
+                  <button
+                    type="button"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="text-[var(--text-secondary)]"
+                  >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 }
@@ -441,46 +450,23 @@ export function AuthExperience({ initialMode }: { initialMode: AuthMode }): JSX.
                 {success && <CheckCircle2 className="h-5 w-5" />}
               </button>
 
-              <div className="flex items-center gap-3 py-1 text-xs text-[var(--text-muted)]">
-                <span className="h-px flex-1 bg-[var(--border-hex)]" />
-                or continue with
-                <span className="h-px flex-1 bg-[var(--border-hex)]" />
-              </div>
+              {googleAuthEnabled && (
+                <>
+                  <div className="flex items-center gap-3 py-1 text-xs text-[var(--text-muted)]">
+                    <span className="h-px flex-1 bg-[var(--border-hex)]" />
+                    or continue with
+                    <span className="h-px flex-1 bg-[var(--border-hex)]" />
+                  </div>
 
-              <button
-                type="button"
-                className="w-full rounded-xl border border-[var(--border-hex)] px-4 py-2.5 text-sm font-medium"
-                onClick={() => void signIn("google", { callbackUrl: "/dashboard" })}
-              >
-                Continue with Google
-              </button>
-
-              {mode === "login" && (
-                <button type="button" className="text-xs text-violet-600" onClick={() => setForgotOpen((prev) => !prev)}>
-                  Forgot password?
-                </button>
-              )}
-
-              <AnimatePresence>
-                {forgotOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    className="rounded-xl border bg-[var(--bg-surface)] p-3"
+                  <button
+                    type="button"
+                    className="w-full rounded-xl border border-[var(--border-hex)] px-4 py-2.5 text-sm font-medium"
+                    onClick={() => void signIn("google", { callbackUrl: "/dashboard" })}
                   >
-                    <p className="mb-2 text-xs text-[var(--text-secondary)]">Password reset link</p>
-                    <input
-                      type="email"
-                      value={forgotEmail}
-                      onChange={(event) => setForgotEmail(event.target.value)}
-                      placeholder="you@example.com"
-                      className="mb-2 w-full rounded-lg border border-[var(--border-hex)] bg-transparent px-3 py-2 text-sm"
-                    />
-                    <button type="button" className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs text-white">Send link</button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    Continue with Google
+                  </button>
+                </>
+              )}
             </motion.form>
           </AnimatePresence>
 

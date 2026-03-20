@@ -42,7 +42,7 @@ type TiptapEditorProps = {
 };
 
 type SlashItem = {
-  section: "Basic Blocks" | "Media" | "Database";
+  section: "Basic Blocks" | "Media";
   name: string;
   description: string;
   icon: React.ReactNode;
@@ -57,11 +57,17 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
   const [editorFocused, setEditorFocused] = useState(false);
   const [showDrawingPanel, setShowDrawingPanel] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const lastSyncedContentRef = useRef<string | null>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        codeBlock: false,
+        horizontalRule: false,
+        link: false,
+        underline: false,
+      }),
       TaskList,
       TaskItem.configure({ nested: true }),
       Underline,
@@ -89,7 +95,17 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
     if (!editor) {
       return;
     }
-    editor.commands.setContent(content);
+
+    const incoming = JSON.stringify(content);
+    if (lastSyncedContentRef.current === null) {
+      lastSyncedContentRef.current = incoming;
+      return;
+    }
+
+    if (incoming !== JSON.stringify(editor.getJSON())) {
+      editor.commands.setContent(content, false);
+      lastSyncedContentRef.current = incoming;
+    }
   }, [content, editor]);
 
   const slashActions = useMemo<SlashItem[]>(
@@ -182,42 +198,6 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
         description: "Display code with formatting",
         icon: <Code2 className="h-4 w-4" />,
         run: () => editor?.chain().focus().toggleCodeBlock().run(),
-      },
-      {
-        section: "Database",
-        name: "Table",
-        description: "Insert an inline table block",
-        icon: <List className="h-4 w-4" />,
-        run: () =>
-          editor
-            ?.chain()
-            .focus()
-            .insertContent({ type: "paragraph", content: [{ type: "text", text: "[Table block placeholder]" }] })
-            .run(),
-      },
-      {
-        section: "Database",
-        name: "Board",
-        description: "Insert a board block",
-        icon: <List className="h-4 w-4" />,
-        run: () =>
-          editor
-            ?.chain()
-            .focus()
-            .insertContent({ type: "paragraph", content: [{ type: "text", text: "[Board block placeholder]" }] })
-            .run(),
-      },
-      {
-        section: "Database",
-        name: "Gallery",
-        description: "Insert a gallery block",
-        icon: <List className="h-4 w-4" />,
-        run: () =>
-          editor
-            ?.chain()
-            .focus()
-            .insertContent({ type: "paragraph", content: [{ type: "text", text: "[Gallery block placeholder]" }] })
-            .run(),
       },
     ],
     [editor],
@@ -374,7 +354,7 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
               className="mb-2"
               autoFocus
             />
-            {(["Basic Blocks", "Media", "Database"] as const).map((section) => {
+            {(["Basic Blocks", "Media"] as const).map((section) => {
               const items = filteredSlash.filter((entry) => entry.section === section);
               if (items.length === 0) {
                 return null;

@@ -18,7 +18,7 @@ type SidebarProps = {
 };
 
 export function Sidebar({ workspaceId, activePageId }: SidebarProps): JSX.Element {
-  const { isOpen, width, setWidth } = useSidebarStore();
+  const { isOpen, width, setOpen, setWidth } = useSidebarStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -43,11 +43,19 @@ export function Sidebar({ workspaceId, activePageId }: SidebarProps): JSX.Elemen
   return (
     <>
       {searchOpen && <SearchModal workspaceId={workspaceId} onClose={() => setSearchOpen(false)} />}
+      {isOpen && (
+        <button
+          aria-label="Close sidebar"
+          className="fixed inset-0 z-30 bg-black/30 md:hidden"
+          onClick={() => setOpen(false)}
+          type="button"
+        />
+      )}
       <motion.aside
         initial={false}
         animate={{ width: isOpen ? width : 0 }}
         transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
-        className="relative h-screen overflow-hidden border-r bg-card"
+        className="fixed inset-y-0 left-0 z-40 overflow-hidden border-r bg-card md:relative md:h-screen"
       >
         <div className="flex h-full flex-col">
           <div className="border-b px-3 py-3">
@@ -60,10 +68,10 @@ export function Sidebar({ workspaceId, activePageId }: SidebarProps): JSX.Elemen
             </button>
             <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">Workspace</div>
             <div className="flex gap-1">
-              <Button size="sm" variant="ghost" onClick={() => setSearchOpen(true)}>
+              <Button aria-label="Search pages" title="Search pages" size="sm" variant="ghost" onClick={() => setSearchOpen(true)}>
                 <Search className="h-4 w-4" />
               </Button>
-              <Button size="sm" variant="ghost" onClick={cycleTheme} title={`Theme: ${theme || resolvedTheme || "system"}`}>
+              <Button aria-label="Change theme" size="sm" variant="ghost" onClick={cycleTheme} title={`Theme: ${theme || resolvedTheme || "system"}`}>
                 {theme === "system" ? (
                   <span className="text-[10px] font-semibold uppercase">Sys</span>
                 ) : resolvedTheme === "dark" ? (
@@ -78,6 +86,7 @@ export function Sidebar({ workspaceId, activePageId }: SidebarProps): JSX.Elemen
                 </Button>
               </Link>
               <Button
+                aria-label="Create page"
                 size="sm"
                 variant="ghost"
                 className="ml-auto"

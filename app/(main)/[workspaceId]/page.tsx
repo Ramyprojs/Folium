@@ -1,20 +1,13 @@
 import { redirect } from "next/navigation";
-import { getAuthSession } from "@/lib/auth";
-import { ensureDemoUser } from "@/lib/dev-auth";
+import { getCurrentUserId } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
-
-const authDisabled =
-  process.env.AUTH_DISABLED === "true" ||
-  (process.env.NODE_ENV !== "production" && process.env.AUTH_DISABLED !== "false");
 
 export default async function WorkspaceRootPage({
   params,
 }: {
   params: { workspaceId: string };
 }): Promise<never> {
-  const userId = authDisabled
-    ? await ensureDemoUser()
-    : ((await getAuthSession())?.user?.id ?? null);
+  const userId = await getCurrentUserId();
 
   if (!userId) {
     redirect("/login");

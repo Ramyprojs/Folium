@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { canEdit, errorResponse, getMembership, requireUser } from "@/lib/api";
+import { validatePageParentAssignment } from "@/lib/pages";
 import { prisma } from "@/lib/prisma";
 import { pagePatchSchema } from "@/lib/validators";
 
@@ -57,6 +58,15 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
   const membership = await getMembership(userId, current.workspaceId);
   if (!membership || !canEdit(membership.role)) {
     return errorResponse("Forbidden", 403);
+  }
+
+  const parentValidation = await validatePageParentAssignment({
+    pageId: params.id,
+    parentId: parsed.data.parentId,
+    workspaceId: current.workspaceId,
+  });
+  if (!parentValidation.ok) {
+    return errorResponse(parentValidation.message, parentValidation.status);
   }
 
   const updateData: Prisma.PageUncheckedUpdateInput = {

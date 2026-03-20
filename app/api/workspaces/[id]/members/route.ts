@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { canEdit, errorResponse, getMembership, requireUser } from "@/lib/api";
+import { errorResponse, getMembership, requireUser } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { inviteMemberSchema } from "@/lib/validators";
 
@@ -40,8 +40,8 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
   }
 
   const membership = await getMembership(userId, params.id);
-  if (!membership || !canEdit(membership.role)) {
-    return errorResponse("Forbidden", 403);
+  if (!membership || membership.role !== "OWNER") {
+    return errorResponse("Only owners can manage members", 403);
   }
 
   const body = await request.json();
@@ -91,9 +91,26 @@ export async function DELETE(request: Request, { params }: Params): Promise<Next
     return errorResponse("memberId is required", 422);
   }
 
+  const existingMember = await prisma.workspaceMember.findUnique({
+    where: { id: memberId },
+    select: {
+      id: true,
+      workspaceId: true,
+      role: true,
+    },
+  });
+
+  if (!existingMember || existingMember.workspaceId !== params.id) {
+    return errorResponse("Member not found", 404);
+  }
+
+  if (existingMember.role === "OWNER") {
+    return errorResponse("Use a dedicated ownership transfer flow to change owners", 422);
+  }
+
   await prisma.workspaceMember.delete({
     where: {
-      id: memberId,
+      id: existingMember.id,
     },
   });
 

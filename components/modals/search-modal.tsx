@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
 type SearchModalProps = {
@@ -44,6 +44,10 @@ export function SearchModal({ workspaceId, onClose }: SearchModalProps): JSX.Ele
     <Dialog open onOpenChange={onClose}>
       <DialogContent>
         <div className="space-y-3">
+          <DialogTitle className="text-lg font-semibold">Search workspace</DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground">
+            Search pages in the current workspace by title and content.
+          </DialogDescription>
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search pages..." />
           <div className="max-h-[360px] space-y-1 overflow-y-auto">
             {results.map((item) => (

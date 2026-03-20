@@ -76,6 +76,8 @@ cp .env.example .env
 - CLOUDINARY_CLOUD_NAME
 - CLOUDINARY_API_KEY
 - CLOUDINARY_API_SECRET
+- NEXT_PUBLIC_UNSPLASH_ACCESS_KEY (optional, enables Unsplash cover search)
+- AUTH_DISABLED=false (optional; dev-only convenience flag, ignored in production)
 
 4. Run migrations + generate client
 
@@ -99,6 +101,12 @@ Build and run:
 ```bash
 docker build -t notion-clone .
 docker run --env-file .env -p 3000:3000 notion-clone
+```
+
+For production rollouts outside Docker, apply migrations before boot:
+
+```bash
+npm run prisma:migrate:deploy
 ```
 
 ## API Routes
@@ -136,5 +144,6 @@ npm run start
 npm run lint
 npm run prisma:generate
 npm run prisma:migrate
+npm run prisma:migrate:deploy
 npm run prisma:studio
 ```

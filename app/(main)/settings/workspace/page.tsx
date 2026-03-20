@@ -1,10 +1,15 @@
-import { getAuthSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getCurrentUserId } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 
 export default async function WorkspaceSettingsPage(): Promise<JSX.Element> {
-  const session = await getAuthSession();
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    redirect("/login");
+  }
+
   const membership = await prisma.workspaceMember.findFirst({
-    where: { userId: session?.user.id },
+    where: { userId },
     include: {
       workspace: {
         include: {

@@ -1,0 +1,14 @@
+{
+  "node": {
+    "e759304c534705fffaf1afcbf0e0dcf8e021abba": {
+      "workers": {
+        "app/(main)/dashboard/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2FUsers%2Fe3tsamy%2FDocuments%2FProgramming%2Fnotion_clone%2Fapp%2F(main)%2Fdashboard%2Fpage.tsx%22%2C%5B%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
+      },
+      "layer": {
+        "app/(main)/dashboard/page": "rsc"
+      }
+    }
+  },
+  "edge": {},
+  "encryptionKey": "dc1lw3uPtUl7eWOR2fihV/GEgUKOi4gSZNACBw1zRaA="
+}

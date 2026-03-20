@@ -43,10 +43,14 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-    }),
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          }),
+        ]
+      : []),
   ],
   callbacks: {
     async jwt({ token, user }) {
@@ -61,23 +65,34 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    async signIn({ user, account }) {
-      if (account?.provider !== "google" || !user.email) {
-        return true;
+  },
+  events: {
+    async createUser({ user }) {
+      const existingMembership = await prisma.workspaceMember.findFirst({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+
+      if (existingMembership) {
+        return;
       }
 
-      const existing = await prisma.user.findUnique({ where: { email: user.email } });
-      if (!existing) {
-        await prisma.user.create({
+      await prisma.$transaction(async (tx) => {
+        const workspace = await tx.workspace.create({
           data: {
-            email: user.email,
-            name: user.name || "New User",
-            avatar: user.image,
+            name: `${user.name || "New User"}'s Workspace`,
+            ownerId: user.id,
           },
         });
-      }
 
-      return true;
+        await tx.workspaceMember.create({
+          data: {
+            workspaceId: workspace.id,
+            userId: user.id,
+            role: "OWNER",
+          },
+        });
+      });
     },
   },
 };

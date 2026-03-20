@@ -168,7 +168,7 @@ export function SidebarItem({
         <span className="truncate">{title}</span>
       </Link>
       {isFavorited && <Star className="ml-auto h-3.5 w-3.5 fill-amber-400 text-amber-400" />}
-      <div className="ml-auto hidden items-center gap-0.5 group-hover:flex">
+      <div className="ml-auto flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
         <button
           type="button"
           className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-muted"

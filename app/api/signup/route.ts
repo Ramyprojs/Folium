@@ -18,27 +18,30 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const passwordHash = await hash(parsed.data.password, 10);
-    const user = await prisma.user.create({
-      data: {
-        name: parsed.data.name,
-        email: parsed.data.email,
-        passwordHash,
-      },
-    });
 
-    const workspace = await prisma.workspace.create({
-      data: {
-        name: `${user.name}'s Workspace`,
-        ownerId: user.id,
-      },
-    });
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          name: parsed.data.name,
+          email: parsed.data.email,
+          passwordHash,
+        },
+      });
 
-    await prisma.workspaceMember.create({
-      data: {
-        workspaceId: workspace.id,
-        userId: user.id,
-        role: "OWNER",
-      },
+      const workspace = await tx.workspace.create({
+        data: {
+          name: `${user.name}'s Workspace`,
+          ownerId: user.id,
+        },
+      });
+
+      await tx.workspaceMember.create({
+        data: {
+          workspaceId: workspace.id,
+          userId: user.id,
+          role: "OWNER",
+        },
+      });
     });
 
     return NextResponse.json({ ok: true }, { status: 201 });

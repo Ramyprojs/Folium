@@ -23,7 +23,10 @@ export async function GET(_: Request, { params }: Params): Promise<NextResponse>
   }
 
   const comments = await prisma.comment.findMany({
-    where: { pageId: params.id },
+    where: {
+      pageId: params.id,
+      parentId: null,
+    },
     include: {
       user: {
         select: {
@@ -33,6 +36,7 @@ export async function GET(_: Request, { params }: Params): Promise<NextResponse>
         },
       },
       replies: {
+        orderBy: { createdAt: "asc" },
         include: {
           user: {
             select: {
@@ -70,6 +74,20 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
   const parsed = commentSchema.safeParse(body);
   if (!parsed.success) {
     return errorResponse("Invalid payload", 422);
+  }
+
+  if (parsed.data.parentId) {
+    const parent = await prisma.comment.findUnique({
+      where: { id: parsed.data.parentId },
+      select: {
+        id: true,
+        pageId: true,
+      },
+    });
+
+    if (!parent || parent.pageId !== params.id) {
+      return errorResponse("Parent comment does not belong to this page", 422);
+    }
   }
 
   const comment = await prisma.comment.create({
