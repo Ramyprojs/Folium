@@ -91,6 +91,19 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
     return userId;
   }
 
+  const existing = await prisma.comment.findUnique({
+    where: { id: params.id },
+    include: { page: true },
+  });
+  if (!existing) {
+    return errorResponse("Comment not found", 404);
+  }
+
+  const membership = await getMembership(userId, existing.page.workspaceId);
+  if (!membership || !canEdit(membership.role)) {
+    return errorResponse("Forbidden", 403);
+  }
+
   const body = await request.json();
   const parsed = resolveCommentSchema.safeParse(body);
   if (!parsed.success) {
@@ -111,6 +124,19 @@ export async function DELETE(_: Request, { params }: Params): Promise<NextRespon
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
+  }
+
+  const existing = await prisma.comment.findUnique({
+    where: { id: params.id },
+    include: { page: true },
+  });
+  if (!existing) {
+    return errorResponse("Comment not found", 404);
+  }
+
+  const membership = await getMembership(userId, existing.page.workspaceId);
+  if (!membership || !canEdit(membership.role)) {
+    return errorResponse("Forbidden", 403);
   }
 
   await prisma.comment.delete({ where: { id: params.id } });

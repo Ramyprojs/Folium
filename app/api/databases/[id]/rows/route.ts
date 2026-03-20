@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
-import { errorResponse, requireUser } from "@/lib/api";
+import { canEdit, errorResponse, getMembership, requireUser } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { databaseRowSchema } from "@/lib/validators";
 
@@ -21,6 +21,11 @@ export async function GET(_: Request, { params }: Params): Promise<NextResponse>
     return errorResponse("Database not found", 404);
   }
 
+  const membership = await getMembership(userId, database.page.workspaceId);
+  if (!membership) {
+    return errorResponse("Forbidden", 403);
+  }
+
   const rows = await prisma.databaseRow.findMany({
     where: { databaseId: params.id },
     orderBy: { order: "asc" },
@@ -33,6 +38,19 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
+  }
+
+  const database = await prisma.database.findUnique({
+    where: { id: params.id },
+    include: { page: true },
+  });
+  if (!database) {
+    return errorResponse("Database not found", 404);
+  }
+
+  const membership = await getMembership(userId, database.page.workspaceId);
+  if (!membership || !canEdit(membership.role)) {
+    return errorResponse("Forbidden", 403);
   }
 
   const body = await request.json();

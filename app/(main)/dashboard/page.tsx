@@ -1,22 +1,41 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getAuthSession } from "@/lib/auth";
 import { ensureDemoUser } from "@/lib/dev-auth";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 
+const authDisabled =
+  process.env.AUTH_DISABLED === "true" ||
+  (process.env.NODE_ENV !== "production" && process.env.AUTH_DISABLED !== "false");
+
 export default async function DashboardPage(): Promise<JSX.Element> {
+  const userId = authDisabled
+    ? await ensureDemoUser()
+    : ((await getAuthSession())?.user?.id ?? null);
+
+  if (!userId) {
+    redirect("/login");
+  }
+
   async function createWorkspaceAction(): Promise<void> {
     "use server";
 
-    const userId = await ensureDemoUser();
+    const actionUserId = authDisabled
+      ? await ensureDemoUser()
+      : ((await getAuthSession())?.user?.id ?? null);
+
+    if (!actionUserId) {
+      redirect("/login");
+    }
 
     const workspace = await prisma.workspace.create({
       data: {
         name: "New Workspace",
-        ownerId: userId,
+        ownerId: actionUserId,
         members: {
           create: {
-            userId,
+            userId: actionUserId,
             role: "OWNER",
           },
         },
@@ -25,8 +44,6 @@ export default async function DashboardPage(): Promise<JSX.Element> {
 
     redirect(`/${workspace.id}`);
   }
-
-  const userId = await ensureDemoUser();
 
   const memberships = await prisma.workspaceMember.findMany({
     where: { userId },

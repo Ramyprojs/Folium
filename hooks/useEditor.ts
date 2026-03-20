@@ -22,6 +22,9 @@ export function useEditor(pageId: string) {
     () =>
       debounce(async (payload: SavePayload) => {
         try {
+          const currentPage = queryClient.getQueryData<{ page?: { workspaceId?: string } }>(["page", pageId]);
+          const workspaceId = currentPage?.page?.workspaceId;
+
           const response = await fetch(`/api/pages/${pageId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -31,6 +34,9 @@ export function useEditor(pageId: string) {
           if (!response.ok) {
             setSaveState("error");
             await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
+            if (workspaceId) {
+              await queryClient.invalidateQueries({ queryKey: ["pages", workspaceId] });
+            }
             return;
           }
 
@@ -40,9 +46,16 @@ export function useEditor(pageId: string) {
           }
           doneTimer.current = setTimeout(() => setSaveState("idle"), 2000);
           await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
+          if (workspaceId) {
+            await queryClient.invalidateQueries({ queryKey: ["pages", workspaceId] });
+          }
         } catch {
           setSaveState("error");
           await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
+          const currentPage = queryClient.getQueryData<{ page?: { workspaceId?: string } }>(["page", pageId]);
+          if (currentPage?.page?.workspaceId) {
+            await queryClient.invalidateQueries({ queryKey: ["pages", currentPage.page.workspaceId] });
+          }
         }
       }, 700),
     [pageId, queryClient],
@@ -51,6 +64,9 @@ export function useEditor(pageId: string) {
   const save = useMemo(
     () => (payload: SavePayload) => {
       setSaveState("saving");
+      const currentPage = queryClient.getQueryData<{ page?: { workspaceId?: string } }>(["page", pageId]);
+      const workspaceId = currentPage?.page?.workspaceId;
+
       queryClient.setQueryData<{ page: Record<string, unknown> }>(["page", pageId], (current) => {
         if (!current || !current.page) {
           return current;
@@ -65,6 +81,29 @@ export function useEditor(pageId: string) {
           },
         };
       });
+
+      if (workspaceId && (payload.title !== undefined || payload.icon !== undefined)) {
+        queryClient.setQueryData<{ pages: Array<Record<string, unknown>> }>(["pages", workspaceId], (current) => {
+          if (!current?.pages) {
+            return current;
+          }
+
+          return {
+            ...current,
+            pages: current.pages.map((page) => {
+              if (String(page.id) !== pageId) {
+                return page;
+              }
+
+              return {
+                ...page,
+                ...(payload.title !== undefined ? { title: payload.title } : {}),
+                ...(payload.icon !== undefined ? { icon: payload.icon } : {}),
+              };
+            }),
+          };
+        });
+      }
 
       void persist(payload);
     },

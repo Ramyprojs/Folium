@@ -27,6 +27,16 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
     return errorResponse("Invalid payload", 422);
   }
 
+  if (parsed.data.parentId) {
+    const parent = await prisma.page.findUnique({ where: { id: parsed.data.parentId } });
+    if (!parent) {
+      return errorResponse("Parent page not found", 404);
+    }
+    if (parent.workspaceId !== page.workspaceId) {
+      return errorResponse("Cannot move page across workspaces", 403);
+    }
+  }
+
   const updated = await prisma.page.update({
     where: { id: params.id },
     data: {

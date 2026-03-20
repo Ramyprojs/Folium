@@ -292,9 +292,11 @@ export function AuthExperience({ initialMode }: { initialMode: AuthMode }): JSX.
               style={{ animation: "draw-leaf 1.5s ease 0.18s forwards" }}
             />
           </svg>
-          <p className="font-display mt-5 text-[clamp(1.7rem,4vw,2.6rem)] italic text-white">{typeTagline}</p>
+          <p className="font-display mt-5 bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-700 bg-clip-text text-[clamp(1.7rem,4vw,2.6rem)] italic text-transparent dark:from-white dark:via-zinc-100 dark:to-zinc-300">
+            {typeTagline}
+          </p>
 
-          <div className="mt-4 h-7 overflow-hidden text-sm text-white/90">
+          <div className="mt-4 h-7 overflow-hidden text-sm text-zinc-700/90 dark:text-white/90">
             <AnimatePresence mode="wait">
               <motion.p
                 key={highlightIndex}
@@ -308,7 +310,7 @@ export function AuthExperience({ initialMode }: { initialMode: AuthMode }): JSX.
             </AnimatePresence>
           </div>
 
-          <div className="absolute bottom-8 left-8 flex items-center gap-2 text-xs text-white/90">
+          <div className="absolute bottom-8 left-8 flex items-center gap-2 text-xs text-zinc-700/90 dark:text-white/90">
             <div className="flex -space-x-2">
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/50 bg-violet-500 text-[10px]">AL</span>
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/50 bg-teal-500 text-[10px]">MK</span>

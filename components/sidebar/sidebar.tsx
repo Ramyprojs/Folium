@@ -3,7 +3,9 @@
 import { motion } from "framer-motion";
 import { ChevronDown, Leaf, Moon, Plus, Search, Settings, Sun } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { PageTree } from "@/components/sidebar/page-tree";
@@ -18,6 +20,8 @@ type SidebarProps = {
 export function Sidebar({ workspaceId, activePageId }: SidebarProps): JSX.Element {
   const { isOpen, width, setWidth } = useSidebarStore();
   const [searchOpen, setSearchOpen] = useState(false);
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const { resolvedTheme, theme, setTheme } = useTheme();
 
   const cycleTheme = () => {
@@ -78,12 +82,22 @@ export function Sidebar({ workspaceId, activePageId }: SidebarProps): JSX.Elemen
                 variant="ghost"
                 className="ml-auto"
                 onClick={async () => {
-                  await fetch("/api/pages", {
+                  const response = await fetch("/api/pages", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ workspaceId, title: "Untitled" }),
                   });
-                  window.location.reload();
+
+                  if (!response.ok) {
+                    return;
+                  }
+
+                  const data = (await response.json()) as { page?: { id?: string } };
+                  await queryClient.invalidateQueries({ queryKey: ["pages", workspaceId] });
+
+                  if (data.page?.id) {
+                    router.push(`/${workspaceId}/${data.page.id}`);
+                  }
                 }}
               >
                 <Plus className="h-4 w-4" />

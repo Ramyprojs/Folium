@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
-import { errorResponse, requireUser } from "@/lib/api";
+import { canEdit, errorResponse, getMembership, requireUser } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { databaseRowSchema } from "@/lib/validators";
 
@@ -21,6 +21,19 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
   const existing = await prisma.databaseRow.findUnique({ where: { id: params.rid } });
   if (!existing || existing.databaseId !== params.id) {
     return errorResponse("Row not found", 404);
+  }
+
+  const database = await prisma.database.findUnique({
+    where: { id: params.id },
+    include: { page: true },
+  });
+  if (!database) {
+    return errorResponse("Database not found", 404);
+  }
+
+  const membership = await getMembership(userId, database.page.workspaceId);
+  if (!membership || !canEdit(membership.role)) {
+    return errorResponse("Forbidden", 403);
   }
 
   const row = await prisma.databaseRow.update({
@@ -45,6 +58,19 @@ export async function DELETE(_: Request, { params }: Params): Promise<NextRespon
   const existing = await prisma.databaseRow.findUnique({ where: { id: params.rid } });
   if (!existing || existing.databaseId !== params.id) {
     return errorResponse("Row not found", 404);
+  }
+
+  const database = await prisma.database.findUnique({
+    where: { id: params.id },
+    include: { page: true },
+  });
+  if (!database) {
+    return errorResponse("Database not found", 404);
+  }
+
+  const membership = await getMembership(userId, database.page.workspaceId);
+  if (!membership || !canEdit(membership.role)) {
+    return errorResponse("Forbidden", 403);
   }
 
   await prisma.databaseRow.delete({ where: { id: params.rid } });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ type ShareModalProps = {
 
 export function ShareModal({ pageId, isPublic, onClose }: ShareModalProps): JSX.Element {
   const [publicState, setPublicState] = useState(isPublic);
+  const queryClient = useQueryClient();
 
   const shareUrl = `${window.location.origin}/share/${pageId}`;
 
@@ -28,6 +30,8 @@ export function ShareModal({ pageId, isPublic, onClose }: ShareModalProps): JSX.
                 if (res.ok) {
                   const data = await res.json();
                   setPublicState(data.page.isPublic);
+                  await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
+                  await queryClient.invalidateQueries({ queryKey: ["pages"] });
                 }
               }}
             >

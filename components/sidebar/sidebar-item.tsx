@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ChevronRight, FileText, MoreHorizontal, Plus, Star } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -34,6 +35,7 @@ export function SidebarItem({
   onDropPage,
 }: SidebarItemProps): JSX.Element {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -51,23 +53,56 @@ export function SidebarItem({
   const action = async (type: "rename" | "duplicate" | "favorite" | "delete" | "copy") => {
     if (type === "rename") {
       const newTitle = window.prompt("Rename page", title || "Untitled");
-      if (newTitle) {
+      const sanitized = newTitle?.trim();
+      if (sanitized) {
         await fetch(`/api/pages/${pageId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: newTitle }),
+          body: JSON.stringify({ title: sanitized }),
         });
       }
     }
 
     if (type === "duplicate") {
       const res = await fetch(`/api/pages/${pageId}`);
-      const data = await res.json();
-      await fetch("/api/pages", {
+      const data = (await res.json()) as {
+        page?: {
+          id: string;
+          title: string;
+          parentId: string | null;
+          icon: string | null;
+          coverImage: string | null;
+          content: Record<string, unknown>;
+          fullWidth: boolean;
+        };
+      };
+
+      if (!data.page) {
+        setMenuOpen(false);
+        return;
+      }
+
+      const createdRes = await fetch("/api/pages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ workspaceId, title: `${data.page.title} copy`, parentId: data.page.parentId }),
       });
+
+      if (createdRes.ok) {
+        const createdData = (await createdRes.json()) as { page?: { id: string } };
+        if (createdData.page?.id && data.page) {
+          await fetch(`/api/pages/${createdData.page.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              icon: data.page.icon,
+              coverImage: data.page.coverImage,
+              content: data.page.content,
+              fullWidth: data.page.fullWidth,
+            }),
+          });
+        }
+      }
     }
 
     if (type === "favorite") {
@@ -83,7 +118,11 @@ export function SidebarItem({
     }
 
     setMenuOpen(false);
-    router.refresh();
+    await queryClient.invalidateQueries({ queryKey: ["pages", workspaceId] });
+    await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
+    if (type === "delete" && isActive) {
+      router.push(`/${workspaceId}`);
+    }
   };
 
   return (
@@ -134,12 +173,21 @@ export function SidebarItem({
           type="button"
           className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-muted"
           onClick={async () => {
-            await fetch("/api/pages", {
+            const response = await fetch("/api/pages", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ workspaceId, title: "Untitled", parentId: pageId }),
             });
-            router.refresh();
+
+            if (!response.ok) {
+              return;
+            }
+
+            const data = (await response.json()) as { page?: { id?: string } };
+            await queryClient.invalidateQueries({ queryKey: ["pages", workspaceId] });
+            if (data.page?.id) {
+              router.push(`/${workspaceId}/${data.page.id}`);
+            }
           }}
           title="Add child page"
         >
