@@ -3,6 +3,13 @@
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 const MAX_INLINE_FALLBACK_BYTES = 2 * 1024 * 1024;
 
+type UploadResult = {
+  url: string;
+  name: string;
+  mimeType: string;
+  size: number;
+};
+
 function readDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -71,6 +78,16 @@ async function fileFromDataUrl(dataUrl: string, fileName: string): Promise<File>
 
 export async function uploadImageFile(file: File): Promise<string> {
   const preparedFile = await normalizeImageForUpload(file);
+  const result = await uploadFileInternal(preparedFile, true);
+  return result.url;
+}
+
+export async function uploadFile(file: File): Promise<UploadResult> {
+  return uploadFileInternal(file, false);
+}
+
+async function uploadFileInternal(file: File, allowInlineImageFallback: boolean): Promise<UploadResult> {
+  const preparedFile = file.type.startsWith("image/") ? await normalizeImageForUpload(file) : file;
   const formData = new FormData();
   formData.append("file", preparedFile);
 
@@ -83,6 +100,7 @@ export async function uploadImageFile(file: File): Promise<string> {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
 
     if (
+      allowInlineImageFallback &&
       response.status === 503 &&
       body.error?.toLowerCase().includes("not configured")
     ) {
@@ -90,18 +108,28 @@ export async function uploadImageFile(file: File): Promise<string> {
         throw new Error("Uploads are not configured yet. Configure Cloudinary or upload an image under 2 MB.");
       }
 
-      return readDataUrl(preparedFile);
+      return {
+        url: await readDataUrl(preparedFile),
+        name: preparedFile.name,
+        mimeType: preparedFile.type || "image/png",
+        size: preparedFile.size,
+      };
     }
 
     throw new Error(body.error || "Upload failed");
   }
 
-  const body = (await response.json()) as { url?: string };
+  const body = (await response.json()) as { url?: string; name?: string; mimeType?: string; size?: number };
   if (!body.url) {
     throw new Error("Upload failed");
   }
 
-  return body.url;
+  return {
+    url: body.url,
+    name: body.name || preparedFile.name,
+    mimeType: body.mimeType || preparedFile.type || "application/octet-stream",
+    size: typeof body.size === "number" ? body.size : preparedFile.size,
+  };
 }
 
 export async function uploadImageDataUrl(dataUrl: string, fileName: string): Promise<string> {

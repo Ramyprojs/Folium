@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Sidebar } from "@/components/sidebar/sidebar";
 import { TiptapEditor } from "@/components/editor/tiptap-editor";
+import { FloatingNotes } from "@/components/editor/floating-notes";
 import { ShareModal } from "@/components/modals/share-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -845,6 +846,8 @@ export function WorkspacePageClient({
           onClose={() => setShareOpen(false)}
         />
       )}
+
+      <FloatingNotes />
     </div>
   );
 }

@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SketchPadModal } from "@/components/editor/sketch-pad-modal";
 import { AdvancedImage } from "@/components/editor/extensions/advanced-image";
-import { uploadImageDataUrl, uploadImageFile } from "@/lib/client-upload";
+import { uploadFile, uploadImageDataUrl, uploadImageFile } from "@/lib/client-upload";
 
 const lowlight = createLowlight(common);
 
@@ -251,7 +251,36 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
         continue;
       }
 
-      toast.error(`"${file.name}" was skipped. Only image uploads are currently supported.`);
+      try {
+        const uploaded = await uploadFile(file);
+        editor
+          .chain()
+          .focus()
+          .insertContent([
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: uploaded.name,
+                  marks: [
+                    {
+                      type: "link",
+                      attrs: {
+                        href: uploaded.url,
+                        target: "_blank",
+                        rel: "noreferrer",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ])
+          .run();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : `Unable to upload ${file.name}.`);
+      }
     }
   };
 
@@ -390,6 +419,7 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
         type="file"
         multiple
         className="hidden"
+        accept="*/*"
         onChange={(event) => {
           void insertFiles(event.target.files);
           event.currentTarget.value = "";
