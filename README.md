@@ -50,7 +50,7 @@ Production-ready Notion-style workspace app built with:
 ### Deployment
 - .env example provided
 - Multi-stage Dockerfile
-- Build validated successfully
+- Prisma migrations can be applied separately before boot
 
 ## Quick Start
 
@@ -59,6 +59,8 @@ Production-ready Notion-style workspace app built with:
 ```bash
 npm install
 ```
+
+Use Node 20 LTS for local builds and production images.
 
 2. Copy environment file
 
@@ -77,7 +79,7 @@ cp .env.example .env
 - CLOUDINARY_API_KEY
 - CLOUDINARY_API_SECRET
 - NEXT_PUBLIC_UNSPLASH_ACCESS_KEY (optional, enables Unsplash cover search)
-- AUTH_DISABLED=false (optional; dev-only convenience flag, ignored in production)
+- AUTH_DISABLED=false (optional; local `next dev` only convenience flag)
 
 4. Run migrations + generate client
 
@@ -107,6 +109,12 @@ For production rollouts outside Docker, apply migrations before boot:
 
 ```bash
 npm run prisma:migrate:deploy
+```
+
+Then start the app:
+
+```bash
+npm run start
 ```
 
 ## API Routes

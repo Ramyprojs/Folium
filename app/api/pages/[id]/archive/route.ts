@@ -3,15 +3,16 @@ import { canEdit, errorResponse, getMembership, requireUser } from "@/lib/api";
 import { collectPageTreeIds } from "@/lib/pages";
 import { prisma } from "@/lib/prisma";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(_: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
-  const page = await prisma.page.findUnique({ where: { id: params.id } });
+  const page = await prisma.page.findUnique({ where: { id } });
   if (!page) {
     return errorResponse("Page not found", 404);
   }
@@ -22,7 +23,7 @@ export async function PATCH(_: Request, { params }: Params): Promise<NextRespons
   }
 
   const nextArchivedState = !page.isArchived;
-  const ids = await collectPageTreeIds(params.id);
+  const ids = await collectPageTreeIds(id);
 
   await prisma.page.updateMany({
     where: {

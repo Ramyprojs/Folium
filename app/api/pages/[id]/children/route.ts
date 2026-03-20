@@ -2,15 +2,16 @@ import { NextResponse } from "next/server";
 import { errorResponse, getMembership, requireUser } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
-  const page = await prisma.page.findUnique({ where: { id: params.id } });
+  const page = await prisma.page.findUnique({ where: { id } });
   if (!page) {
     return errorResponse("Page not found", 404);
   }
@@ -22,7 +23,7 @@ export async function GET(_: Request, { params }: Params): Promise<NextResponse>
 
   const children = await prisma.page.findMany({
     where: {
-      parentId: params.id,
+      parentId: id,
       isArchived: false,
     },
     orderBy: {

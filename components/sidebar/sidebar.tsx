@@ -5,7 +5,7 @@ import { ChevronDown, Leaf, Moon, Plus, Search, Settings, Sun } from "lucide-rea
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { PageTree } from "@/components/sidebar/page-tree";
@@ -20,14 +20,29 @@ type SidebarProps = {
 export function Sidebar({ workspaceId, activePageId }: SidebarProps): JSX.Element {
   const { isOpen, width, setOpen, setWidth } = useSidebarStore();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const queryClient = useQueryClient();
   const { resolvedTheme, theme, setTheme } = useTheme();
+  const workspaceQuery = useQuery<{ workspace: { id: string; name: string; icon: string | null } }>({
+    queryKey: ["workspace", workspaceId],
+    queryFn: async () => {
+      const response = await fetch(`/api/workspaces/${workspaceId}`);
+      if (!response.ok) {
+        throw new Error("Failed to load workspace");
+      }
+      return response.json();
+    },
+  });
 
   const cycleTheme = () => {
     const next = theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
     setTheme(next);
   };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handle = (event: KeyboardEvent) => {
@@ -59,20 +74,28 @@ export function Sidebar({ workspaceId, activePageId }: SidebarProps): JSX.Elemen
       >
         <div className="flex h-full flex-col">
           <div className="border-b px-3 py-3">
-            <button type="button" className="mb-2 flex w-full items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-accent/60">
+            <Link
+              href="/dashboard"
+              className="mb-2 flex w-full items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-accent/60"
+              title="Back to all workspaces"
+            >
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-violet-700 dark:bg-violet-900/35 dark:text-violet-300">
                 <Leaf className="h-4 w-4" />
               </span>
-              <span className="flex-1 text-left text-[15px] font-semibold tracking-tight">Folium Workspace</span>
+              <span className="flex-1 text-left text-[15px] font-semibold tracking-tight">
+                {workspaceQuery.data?.workspace.name || "Workspace"}
+              </span>
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </button>
+            </Link>
             <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">Workspace</div>
             <div className="flex gap-1">
               <Button aria-label="Search pages" title="Search pages" size="sm" variant="ghost" onClick={() => setSearchOpen(true)}>
                 <Search className="h-4 w-4" />
               </Button>
               <Button aria-label="Change theme" size="sm" variant="ghost" onClick={cycleTheme} title={`Theme: ${theme || resolvedTheme || "system"}`}>
-                {theme === "system" ? (
+                {!mounted ? (
+                  <span className="block h-4 w-4" aria-hidden />
+                ) : theme === "system" ? (
                   <span className="text-[10px] font-semibold uppercase">Sys</span>
                 ) : resolvedTheme === "dark" ? (
                   <Sun className="h-4 w-4" />
@@ -80,7 +103,7 @@ export function Sidebar({ workspaceId, activePageId }: SidebarProps): JSX.Elemen
                   <Moon className="h-4 w-4" />
                 )}
               </Button>
-              <Link href={`/settings/workspace`}>
+              <Link href={`/settings/workspace?workspaceId=${workspaceId}`}>
                 <Button size="sm" variant="ghost">
                   <Settings className="h-4 w-4" />
                 </Button>

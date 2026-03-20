@@ -16,7 +16,7 @@ export function PageTree({ workspaceId, activePageId }: PageTreeProps): JSX.Elem
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  const pages = data?.pages || [];
+  const pages = useMemo(() => data?.pages || [], [data?.pages]);
 
   const grouped = useMemo(() => {
     const groups = new Map<string | null, typeof pages>();
@@ -33,7 +33,7 @@ export function PageTree({ workspaceId, activePageId }: PageTreeProps): JSX.Elem
       );
     }
     return groups;
-  }, [data?.pages]);
+  }, [pages]);
 
   const rootPages = grouped.get(null) || [];
   const favoritePages = pages.filter((page) => page.isFavorited);

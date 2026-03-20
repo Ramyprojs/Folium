@@ -15,6 +15,7 @@ type ShareModalProps = {
 export function ShareModal({ pageId, isPublic, onClose }: ShareModalProps): JSX.Element {
   const [publicState, setPublicState] = useState(isPublic);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const shareUrl = useMemo(() => {
@@ -38,18 +39,23 @@ export function ShareModal({ pageId, isPublic, onClose }: ShareModalProps): JSX.
               disabled={isSaving}
               onClick={async () => {
                 setIsSaving(true);
+                setError(null);
                 try {
                   const res = await fetch(`/api/pages/${pageId}/share`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ isPublic: !publicState }),
                   });
-                  if (res.ok) {
-                    const data = await res.json();
-                    setPublicState(data.page.isPublic);
-                    await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
-                    await queryClient.invalidateQueries({ queryKey: ["pages"] });
+                  if (!res.ok) {
+                    const body = (await res.json().catch(() => ({}))) as { error?: string };
+                    setError(body.error || "Unable to update sharing settings.");
+                    return;
                   }
+
+                  const data = await res.json();
+                  setPublicState(data.page.isPublic);
+                  await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
+                  await queryClient.invalidateQueries({ queryKey: ["pages"] });
                 } finally {
                   setIsSaving(false);
                 }
@@ -58,6 +64,7 @@ export function ShareModal({ pageId, isPublic, onClose }: ShareModalProps): JSX.
               {publicState ? "Disable public link" : "Enable public link"}
             </Button>
           </div>
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
           <Input readOnly value={publicState ? shareUrl : "Public link disabled"} />
           <Button
             variant="outline"

@@ -122,6 +122,7 @@ function renderNode(node: RichNode, index: number): ReactNode {
 
       return (
         <figure className="space-y-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={src} alt={alt} className="max-h-[540px] w-full rounded-xl border object-cover" />
           {caption ? <figcaption className="text-center text-sm text-muted-foreground">{caption}</figcaption> : null}
         </figure>

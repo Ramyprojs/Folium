@@ -1,23 +1,25 @@
 import { NextResponse } from "next/server";
+import { normalizeEmail } from "@/lib/dev-auth";
 import { errorResponse, getMembership, requireUser } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { inviteMemberSchema } from "@/lib/validators";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
-  const membership = await getMembership(userId, params.id);
+  const membership = await getMembership(userId, id);
   if (!membership) {
     return errorResponse("Forbidden", 403);
   }
 
   const members = await prisma.workspaceMember.findMany({
-    where: { workspaceId: params.id },
+    where: { workspaceId: id },
     include: {
       user: {
         select: {
@@ -30,16 +32,25 @@ export async function GET(_: Request, { params }: Params): Promise<NextResponse>
     },
   });
 
-  return NextResponse.json({ members });
+  return NextResponse.json({
+    members: members.map((member) => ({
+      ...member,
+      user: {
+        ...member.user,
+        email: membership.role === "VIEWER" && member.user.id !== userId ? null : member.user.email,
+      },
+    })),
+  });
 }
 
 export async function POST(request: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
-  const membership = await getMembership(userId, params.id);
+  const membership = await getMembership(userId, id);
   if (!membership || membership.role !== "OWNER") {
     return errorResponse("Only owners can manage members", 403);
   }
@@ -50,7 +61,7 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
     return errorResponse("Invalid payload", 422);
   }
 
-  const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+  const user = await prisma.user.findUnique({ where: { email: normalizeEmail(parsed.data.email) } });
   if (!user) {
     return errorResponse("User does not exist", 404);
   }
@@ -59,7 +70,7 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
     where: {
       userId_workspaceId: {
         userId: user.id,
-        workspaceId: params.id,
+        workspaceId: id,
       },
     },
     update: {
@@ -67,7 +78,7 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
     },
     create: {
       userId: user.id,
-      workspaceId: params.id,
+      workspaceId: id,
       role: parsed.data.role,
     },
   });
@@ -76,12 +87,13 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
 }
 
 export async function DELETE(request: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
-  const membership = await getMembership(userId, params.id);
+  const membership = await getMembership(userId, id);
   if (!membership || membership.role !== "OWNER") {
     return errorResponse("Only owner can remove members", 403);
   }
@@ -100,7 +112,7 @@ export async function DELETE(request: Request, { params }: Params): Promise<Next
     },
   });
 
-  if (!existingMember || existingMember.workspaceId !== params.id) {
+  if (!existingMember || existingMember.workspaceId !== id) {
     return errorResponse("Member not found", 404);
   }
 

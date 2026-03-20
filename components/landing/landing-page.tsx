@@ -95,6 +95,7 @@ export function LandingPage(): JSX.Element {
   const [demoIndex, setDemoIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
   const [deleting, setDeleting] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [featuresRef, featuresInView] = useInView(0.2);
   const { theme, setTheme, resolvedTheme } = useTheme();
 
@@ -108,6 +109,10 @@ export function LandingPage(): JSX.Element {
   );
 
   const heroWords = "The workspace that thinks with you.".split(" ");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const phrase = demoPhrases[demoIndex];
@@ -297,22 +302,43 @@ export function LandingPage(): JSX.Element {
               <Leaf className="h-5 w-5 text-violet-500" /> Folium
             </div>
             <p className="text-sm text-[var(--text-secondary)]">Your thinking space, beautifully animated.</p>
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">
+              Made by Ramy Abdelmalak.
+              {" "}
+              <a
+                href="https://github.com/Ramyprojs/Folium"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-violet-600 hover:text-violet-500"
+              >
+                GitHub
+              </a>
+              {" "}
+              ·
+              {" "}
+              <a
+                href="https://www.linkedin.com/in/ramy-abdelmalak-aa2507177/"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-violet-600 hover:text-violet-500"
+              >
+                LinkedIn
+              </a>
+            </p>
           </div>
-
-          <nav className="flex items-center gap-4 text-sm text-[var(--text-secondary)]">
-            <a href="#" className="hover:text-[var(--text-primary)]">Product</a>
-            <a href="#" className="hover:text-[var(--text-primary)]">Pricing</a>
-            <a href="#" className="hover:text-[var(--text-primary)]">About</a>
-            <a href="#" className="hover:text-[var(--text-primary)]">Blog</a>
-            <a href="#" className="hover:text-[var(--text-primary)]">Changelog</a>
-          </nav>
 
           <button
             type="button"
             className="rounded-lg border bg-[var(--bg-elevated)] p-2"
             onClick={() => setTheme(theme === "dark" || resolvedTheme === "dark" ? "light" : "dark")}
           >
-            {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {!mounted ? (
+              <span className="block h-4 w-4" aria-hidden />
+            ) : resolvedTheme === "dark" ? (
+              <Sun className="h-4 w-4" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            )}
           </button>
         </div>
       </footer>

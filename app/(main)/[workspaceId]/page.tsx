@@ -5,8 +5,9 @@ import { prisma } from "@/lib/prisma";
 export default async function WorkspaceRootPage({
   params,
 }: {
-  params: { workspaceId: string };
+  params: Promise<{ workspaceId: string }>;
 }): Promise<never> {
+  const { workspaceId } = await params;
   const userId = await getCurrentUserId();
 
   if (!userId) {
@@ -17,7 +18,7 @@ export default async function WorkspaceRootPage({
     where: {
       userId_workspaceId: {
         userId,
-        workspaceId: params.workspaceId,
+        workspaceId,
       },
     },
   });
@@ -26,18 +27,29 @@ export default async function WorkspaceRootPage({
     redirect("/dashboard");
   }
 
-  const first = await prisma.page.findFirst({
+  const firstTopLevelPage = await prisma.page.findFirst({
     where: {
-      workspaceId: params.workspaceId,
+      workspaceId,
       isArchived: false,
+      parentId: null,
     },
-    orderBy: { updatedAt: "desc" },
+    orderBy: [{ updatedAt: "desc" }, { createdAt: "asc" }],
   });
 
-  if (!first) {
+  const firstPage =
+    firstTopLevelPage ||
+    (await prisma.page.findFirst({
+      where: {
+        workspaceId,
+        isArchived: false,
+      },
+      orderBy: [{ updatedAt: "desc" }, { createdAt: "asc" }],
+    }));
+
+  if (!firstPage) {
     const created = await prisma.page.create({
       data: {
-        workspaceId: params.workspaceId,
+        workspaceId,
         createdById: userId,
         title: "Getting started",
         content: {
@@ -46,8 +58,8 @@ export default async function WorkspaceRootPage({
         },
       },
     });
-    redirect(`/${params.workspaceId}/${created.id}`);
+    redirect(`/${workspaceId}/${created.id}`);
   }
 
-  redirect(`/${params.workspaceId}/${first.id}`);
+  redirect(`/${workspaceId}/${firstPage.id}`);
 }

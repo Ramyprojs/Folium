@@ -1,9 +1,14 @@
-import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { PublicRichContent } from "@/components/editor/public-rich-content";
+import { prisma } from "@/lib/prisma";
+import { notFound } from "next/navigation";
 
-export default async function PublicPage({ params }: { params: { pageId: string } }): Promise<JSX.Element> {
-  const page = await prisma.page.findUnique({ where: { id: params.pageId } });
+export default async function PublicPage({
+  params,
+}: {
+  params: Promise<{ pageId: string }>;
+}): Promise<JSX.Element> {
+  const { pageId } = await params;
+  const page = await prisma.page.findUnique({ where: { id: pageId } });
   if (!page || !page.isPublic) {
     notFound();
   }

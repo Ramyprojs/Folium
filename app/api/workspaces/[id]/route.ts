@@ -1,36 +1,31 @@
 import { NextResponse } from "next/server";
-import { canEdit, errorResponse, getMembership, requireUser } from "@/lib/api";
+import { errorResponse, getMembership, requireUser } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { workspacePatchSchema } from "@/lib/validators";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
-  const membership = await getMembership(userId, params.id);
+  const membership = await getMembership(userId, id);
   if (!membership) {
     return errorResponse("Forbidden", 403);
   }
 
   const workspace = await prisma.workspace.findUnique({
-    where: { id: params.id },
-    include: {
-      members: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              avatar: true,
-            },
-          },
-        },
-      },
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      icon: true,
+      ownerId: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
 
@@ -42,14 +37,15 @@ export async function GET(_: Request, { params }: Params): Promise<NextResponse>
 }
 
 export async function PATCH(request: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
-  const membership = await getMembership(userId, params.id);
-  if (!membership || !canEdit(membership.role)) {
-    return errorResponse("Forbidden", 403);
+  const membership = await getMembership(userId, id);
+  if (!membership || membership.role !== "OWNER") {
+    return errorResponse("Only owners can update workspace settings", 403);
   }
 
   const body = await request.json();
@@ -59,7 +55,7 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
   }
 
   const workspace = await prisma.workspace.update({
-    where: { id: params.id },
+    where: { id },
     data: parsed.data,
   });
 
@@ -67,12 +63,13 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
 }
 
 export async function DELETE(_: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
-  const workspace = await prisma.workspace.findUnique({ where: { id: params.id } });
+  const workspace = await prisma.workspace.findUnique({ where: { id } });
   if (!workspace) {
     return errorResponse("Workspace not found", 404);
   }
@@ -80,6 +77,6 @@ export async function DELETE(_: Request, { params }: Params): Promise<NextRespon
     return errorResponse("Only owner can delete workspace", 403);
   }
 
-  await prisma.workspace.delete({ where: { id: params.id } });
+  await prisma.workspace.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

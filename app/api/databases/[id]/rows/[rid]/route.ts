@@ -4,9 +4,10 @@ import { canEdit, errorResponse, getMembership, requireUser } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { databaseRowSchema } from "@/lib/validators";
 
-type Params = { params: { id: string; rid: string } };
+type Params = { params: Promise<{ id: string; rid: string }> };
 
 export async function PATCH(request: Request, { params }: Params): Promise<NextResponse> {
+  const { id, rid } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
@@ -21,13 +22,13 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
     return errorResponse("Invalid payload", 422);
   }
 
-  const existing = await prisma.databaseRow.findUnique({ where: { id: params.rid } });
-  if (!existing || existing.databaseId !== params.id) {
+  const existing = await prisma.databaseRow.findUnique({ where: { id: rid } });
+  if (!existing || existing.databaseId !== id) {
     return errorResponse("Row not found", 404);
   }
 
   const database = await prisma.database.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { page: true },
   });
   if (!database) {
@@ -40,7 +41,7 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
   }
 
   const row = await prisma.databaseRow.update({
-    where: { id: params.rid },
+    where: { id: rid },
     data: {
       ...(parsed.data.order !== undefined ? { order: parsed.data.order } : {}),
       ...(parsed.data.properties !== undefined
@@ -58,18 +59,19 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
 }
 
 export async function DELETE(_: Request, { params }: Params): Promise<NextResponse> {
+  const { id, rid } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
-  const existing = await prisma.databaseRow.findUnique({ where: { id: params.rid } });
-  if (!existing || existing.databaseId !== params.id) {
+  const existing = await prisma.databaseRow.findUnique({ where: { id: rid } });
+  if (!existing || existing.databaseId !== id) {
     return errorResponse("Row not found", 404);
   }
 
   const database = await prisma.database.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { page: true },
   });
   if (!database) {
@@ -81,7 +83,7 @@ export async function DELETE(_: Request, { params }: Params): Promise<NextRespon
     return errorResponse("Forbidden", 403);
   }
 
-  await prisma.databaseRow.delete({ where: { id: params.rid } });
+  await prisma.databaseRow.delete({ where: { id: rid } });
 
   return NextResponse.json({ ok: true });
 }

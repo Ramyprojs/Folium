@@ -4,15 +4,16 @@ import { validatePageParentAssignment } from "@/lib/pages";
 import { prisma } from "@/lib/prisma";
 import { movePageSchema } from "@/lib/validators";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
-  const page = await prisma.page.findUnique({ where: { id: params.id } });
+  const page = await prisma.page.findUnique({ where: { id } });
   if (!page) {
     return errorResponse("Page not found", 404);
   }
@@ -29,7 +30,7 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
   }
 
   const parentValidation = await validatePageParentAssignment({
-    pageId: params.id,
+    pageId: id,
     parentId: parsed.data.parentId,
     workspaceId: page.workspaceId,
   });
@@ -38,7 +39,7 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
   }
 
   const updated = await prisma.page.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       parentId: parsed.data.parentId,
       order: parsed.data.order,

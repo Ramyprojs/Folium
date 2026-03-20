@@ -2,15 +2,16 @@ import { NextResponse } from "next/server";
 import { canEdit, errorResponse, getMembership, requireUser } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(_: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
-  const page = await prisma.page.findUnique({ where: { id: params.id } });
+  const page = await prisma.page.findUnique({ where: { id } });
   if (!page) {
     return errorResponse("Page not found", 404);
   }
@@ -21,7 +22,7 @@ export async function PATCH(_: Request, { params }: Params): Promise<NextRespons
   }
 
   const updated = await prisma.page.update({
-    where: { id: params.id },
+    where: { id },
     data: { isFavorited: !page.isFavorited },
   });
 

@@ -1,6 +1,8 @@
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
+import { normalizeEmail } from "@/lib/dev-auth";
 import { prisma } from "@/lib/prisma";
+import { consumeRateLimit, getRequestIp } from "@/lib/rate-limit";
 import { authSignupSchema } from "@/lib/validators";
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -12,7 +14,25 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
     }
 
-    const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+    const normalizedEmail = normalizeEmail(parsed.data.email);
+    const normalizedName = parsed.data.name.trim();
+    const requestIp = getRequestIp(request.headers);
+    const ipLimit = consumeRateLimit({
+      key: `signup:ip:${requestIp}`,
+      limit: 8,
+      windowMs: 60 * 60 * 1000,
+    });
+    const emailLimit = consumeRateLimit({
+      key: `signup:email:${requestIp}:${normalizedEmail}`,
+      limit: 3,
+      windowMs: 60 * 60 * 1000,
+    });
+
+    if (!ipLimit.allowed || !emailLimit.allowed) {
+      return NextResponse.json({ error: "Too many signup attempts. Please try again later." }, { status: 429 });
+    }
+
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) {
       return NextResponse.json({ error: "Email is already in use" }, { status: 409 });
     }
@@ -22,8 +42,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          name: parsed.data.name,
-          email: parsed.data.email,
+          name: normalizedName,
+          email: normalizedEmail,
           passwordHash,
         },
       });

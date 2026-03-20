@@ -4,16 +4,17 @@ import { canEdit, errorResponse, getMembership, requireUser } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { databaseRowSchema } from "@/lib/validators";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
   const database = await prisma.database.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { page: true },
   });
 
@@ -27,7 +28,7 @@ export async function GET(_: Request, { params }: Params): Promise<NextResponse>
   }
 
   const rows = await prisma.databaseRow.findMany({
-    where: { databaseId: params.id },
+    where: { databaseId: id },
     orderBy: { order: "asc" },
   });
 
@@ -35,13 +36,14 @@ export async function GET(_: Request, { params }: Params): Promise<NextResponse>
 }
 
 export async function POST(request: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
   const database = await prisma.database.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { page: true },
   });
   if (!database) {
@@ -63,13 +65,13 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
   }
 
   const last = await prisma.databaseRow.findFirst({
-    where: { databaseId: params.id },
+    where: { databaseId: id },
     orderBy: { order: "desc" },
   });
 
   const row = await prisma.databaseRow.create({
     data: {
-      databaseId: params.id,
+      databaseId: id,
       properties: parsed.data.properties as Prisma.InputJsonValue,
       order: parsed.data.order ?? (last?.order || 0) + 1,
     },

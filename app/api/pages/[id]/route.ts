@@ -5,16 +5,17 @@ import { validatePageParentAssignment } from "@/lib/pages";
 import { prisma } from "@/lib/prisma";
 import { pagePatchSchema } from "@/lib/validators";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
   const page = await prisma.page.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       createdBy: {
         select: { id: true, name: true, email: true },
@@ -39,6 +40,7 @@ export async function GET(_: Request, { params }: Params): Promise<NextResponse>
 }
 
 export async function PATCH(request: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
@@ -50,7 +52,7 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
     return errorResponse("Invalid payload", 422);
   }
 
-  const current = await prisma.page.findUnique({ where: { id: params.id } });
+  const current = await prisma.page.findUnique({ where: { id } });
   if (!current) {
     return errorResponse("Page not found", 404);
   }
@@ -61,7 +63,7 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
   }
 
   const parentValidation = await validatePageParentAssignment({
-    pageId: params.id,
+    pageId: id,
     parentId: parsed.data.parentId,
     workspaceId: current.workspaceId,
   });
@@ -77,14 +79,21 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
     ...(parsed.data.content !== undefined
       ? { content: parsed.data.content as Prisma.InputJsonValue }
       : {}),
-    ...(parsed.data.isPublic !== undefined ? { isPublic: parsed.data.isPublic } : {}),
     ...(parsed.data.isFavorited !== undefined ? { isFavorited: parsed.data.isFavorited } : {}),
     ...(parsed.data.isArchived !== undefined ? { isArchived: parsed.data.isArchived } : {}),
     ...(parsed.data.fullWidth !== undefined ? { fullWidth: parsed.data.fullWidth } : {}),
   };
 
+  if (parsed.data.isPublic !== undefined) {
+    if (membership.role !== "OWNER") {
+      return errorResponse("Only workspace owners can change public sharing", 403);
+    }
+
+    updateData.isPublic = parsed.data.isPublic;
+  }
+
   const page = await prisma.page.update({
-    where: { id: params.id },
+    where: { id },
     data: updateData,
   });
 
@@ -92,12 +101,13 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
 }
 
 export async function DELETE(_: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
-  const page = await prisma.page.findUnique({ where: { id: params.id } });
+  const page = await prisma.page.findUnique({ where: { id } });
   if (!page) {
     return errorResponse("Page not found", 404);
   }
@@ -107,6 +117,6 @@ export async function DELETE(_: Request, { params }: Params): Promise<NextRespon
     return errorResponse("Forbidden", 403);
   }
 
-  await prisma.page.delete({ where: { id: params.id } });
+  await prisma.page.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

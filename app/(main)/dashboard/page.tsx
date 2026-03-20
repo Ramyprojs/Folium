@@ -39,6 +39,11 @@ export default async function DashboardPage(): Promise<JSX.Element> {
   const memberships = await prisma.workspaceMember.findMany({
     where: { userId },
     include: { workspace: true },
+    orderBy: {
+      workspace: {
+        createdAt: "asc",
+      },
+    },
   });
 
   return (

@@ -28,6 +28,8 @@ import "yet-another-react-lightbox/styles.css";
 import DownloadPlugin from "yet-another-react-lightbox/plugins/download";
 import ZoomPlugin from "yet-another-react-lightbox/plugins/zoom";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { uploadImageDataUrl, uploadImageFile } from "@/lib/client-upload";
 
 type ResizeHandle = "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw";
 
@@ -187,7 +189,7 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
     }
 
     return mapped;
-  }, [attrs.src, lightboxOpen]);
+  }, [attrs.src]);
 
   useEffect(() => {
     if (!lightboxOpen) {
@@ -230,9 +232,14 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
       pixelCrop.height,
     );
 
-    const dataUrl = canvas.toDataURL("image/png");
-    updateAttributes({ src: dataUrl, width: "original" });
-    setCropOpen(false);
+    try {
+      const dataUrl = canvas.toDataURL("image/png");
+      const uploadedUrl = await uploadImageDataUrl(dataUrl, attrs.fileName || `folium-image-${Date.now()}.png`);
+      updateAttributes({ src: uploadedUrl, width: "original" });
+      setCropOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to update image.");
+    }
   };
 
   const onReplaceImage = async (fileList: FileList | null) => {
@@ -241,18 +248,16 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
       return;
     }
 
-    const reader = new FileReader();
-    const result = await new Promise<string>((resolve, reject) => {
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-    updateAttributes({
-      src: result,
-      fileName: file.name,
-      alt: file.name,
-    });
+    try {
+      const uploadedUrl = await uploadImageFile(file);
+      updateAttributes({
+        src: uploadedUrl,
+        fileName: file.name,
+        alt: file.name,
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to replace image.");
+    }
   };
 
   const imageWidthStyle = attrs.width && attrs.width !== "original" ? attrs.width : undefined;
@@ -335,10 +340,12 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
           onClick={() => updateAttributes({ minimized: false })}
           draggable
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={attrs.src} alt={attrs.alt || "thumbnail"} className="h-8 w-8 rounded object-cover" />
           <span className="max-w-[180px] truncate">{attrs.fileName || filenameFromSrc(attrs.src)}</span>
           <Expand className="h-3.5 w-3.5" />
           <span className="pointer-events-none absolute -top-40 left-1/2 hidden -translate-x-1/2 rounded-lg border bg-popover p-2 shadow-xl group-hover:block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={attrs.src} alt="Preview" className="h-[150px] w-[200px] rounded object-cover" />
           </span>
         </button>
@@ -366,6 +373,7 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
               </div>
 
               <ReactCrop crop={crop} onChange={(nextCrop) => setCrop(nextCrop)} aspect={cropAspect ?? undefined}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   ref={imageRef}
                   src={attrs.src}
@@ -390,6 +398,7 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
             </div>
           ) : (
             <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 ref={imageRef}
                 src={attrs.src}

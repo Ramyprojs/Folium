@@ -363,11 +363,11 @@ export function AuthExperience({
               )}
 
               <FloatingField
-                label="Email"
+                label={mode === "login" ? "Email or username" : "Email"}
                 value={email}
                 onChange={setEmail}
                 error={errors.email}
-                valid={email.includes("@")}
+                valid={mode === "login" ? email.trim().length > 0 : email.includes("@")}
                 autoComplete="email"
               />
 

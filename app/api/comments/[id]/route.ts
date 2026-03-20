@@ -4,15 +4,16 @@ import { canEdit, errorResponse, getMembership, requireUser } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { commentSchema, resolveCommentSchema } from "@/lib/validators";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
-  const page = await prisma.page.findUnique({ where: { id: params.id } });
+  const page = await prisma.page.findUnique({ where: { id } });
   if (!page) {
     return errorResponse("Page not found", 404);
   }
@@ -24,7 +25,7 @@ export async function GET(_: Request, { params }: Params): Promise<NextResponse>
 
   const comments = await prisma.comment.findMany({
     where: {
-      pageId: params.id,
+      pageId: id,
       parentId: null,
     },
     include: {
@@ -55,12 +56,13 @@ export async function GET(_: Request, { params }: Params): Promise<NextResponse>
 }
 
 export async function POST(request: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
-  const page = await prisma.page.findUnique({ where: { id: params.id } });
+  const page = await prisma.page.findUnique({ where: { id } });
   if (!page) {
     return errorResponse("Page not found", 404);
   }
@@ -85,14 +87,14 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
       },
     });
 
-    if (!parent || parent.pageId !== params.id) {
+    if (!parent || parent.pageId !== id) {
       return errorResponse("Parent comment does not belong to this page", 422);
     }
   }
 
   const comment = await prisma.comment.create({
     data: {
-      pageId: params.id,
+      pageId: id,
       userId,
       content: parsed.data.content,
       parentId: parsed.data.parentId,
@@ -104,13 +106,14 @@ export async function POST(request: Request, { params }: Params): Promise<NextRe
 }
 
 export async function PATCH(request: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
   const existing = await prisma.comment.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { page: true },
   });
   if (!existing) {
@@ -129,7 +132,7 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
   }
 
   const comment = await prisma.comment.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       resolvedAt: parsed.data.resolved ? new Date() : null,
     },
@@ -139,13 +142,14 @@ export async function PATCH(request: Request, { params }: Params): Promise<NextR
 }
 
 export async function DELETE(_: Request, { params }: Params): Promise<NextResponse> {
+  const { id } = await params;
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
   }
 
   const existing = await prisma.comment.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { page: true },
   });
   if (!existing) {
@@ -157,6 +161,6 @@ export async function DELETE(_: Request, { params }: Params): Promise<NextRespon
     return errorResponse("Forbidden", 403);
   }
 
-  await prisma.comment.delete({ where: { id: params.id } });
+  await prisma.comment.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

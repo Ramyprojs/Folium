@@ -22,6 +22,8 @@ model User {
   id               String            @id @default(cuid())
   email            String            @unique
   name             String
+  emailVerified    DateTime?
+  image            String?
   avatar           String?
   passwordHash     String?
   createdAt        DateTime          @default(now())

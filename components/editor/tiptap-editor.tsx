@@ -27,11 +27,13 @@ import {
   Quote,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { useEditor as useAutoSaveEditor } from "@/hooks/useEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SketchPadModal } from "@/components/editor/sketch-pad-modal";
 import { AdvancedImage } from "@/components/editor/extensions/advanced-image";
+import { uploadImageDataUrl, uploadImageFile } from "@/lib/client-upload";
 
 const lowlight = createLowlight(common);
 
@@ -103,7 +105,7 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
     }
 
     if (incoming !== JSON.stringify(editor.getJSON())) {
-      editor.commands.setContent(content, false);
+      editor.commands.setContent(content, { emitUpdate: false });
       lastSyncedContentRef.current = incoming;
     }
   }, [content, editor]);
@@ -224,17 +226,14 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
     if (!editor) {
       return;
     }
-    editor.chain().focus().setImage({ src: dataUrl, alt: "Drawing" }).run();
-    setShowDrawingPanel(false);
+    try {
+      const uploadedUrl = await uploadImageDataUrl(dataUrl, `folium-drawing-${Date.now()}.png`);
+      editor.chain().focus().setImage({ src: uploadedUrl, alt: "Drawing" }).run();
+      setShowDrawingPanel(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save drawing.");
+    }
   };
-
-  const readFileAsDataUrl = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
 
   const insertFiles = async (files: FileList | null) => {
     if (!files || !editor) {
@@ -243,25 +242,16 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
 
     for (const file of Array.from(files)) {
       if (file.type.startsWith("image/")) {
-        const dataUrl = await readFileAsDataUrl(file);
-        editor.chain().focus().setImage({ src: dataUrl, alt: file.name }).run();
-      } else {
-        const blobUrl = URL.createObjectURL(file);
-        editor
-          .chain()
-          .focus()
-          .insertContent({
-            type: "paragraph",
-            content: [
-              {
-                type: "text",
-                text: `Attachment: ${file.name}`,
-                marks: [{ type: "link", attrs: { href: blobUrl, target: "_blank" } }],
-              },
-            ],
-          })
-          .run();
+        try {
+          const uploadedUrl = await uploadImageFile(file);
+          editor.chain().focus().setImage({ src: uploadedUrl, alt: file.name }).run();
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : `Unable to upload ${file.name}.`);
+        }
+        continue;
       }
+
+      toast.error(`"${file.name}" was skipped. Only image uploads are currently supported.`);
     }
   };
 

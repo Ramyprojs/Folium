@@ -249,8 +249,8 @@ export function SketchPadModal({ open, onCancel, onSave }: SketchPadModalProps):
   const [dragStart, setDragStart] = useState<Point | null>(null);
   const [dragSnapshot, setDragSnapshot] = useState<Shape[] | null>(null);
   const [dragMoved, setDragMoved] = useState(false);
-  const [history, setHistory] = useState<Shape[][]>([]);
-  const [future, setFuture] = useState<Shape[][]>([]);
+  const [, setHistory] = useState<Shape[][]>([]);
+  const [, setFuture] = useState<Shape[][]>([]);
 
   const [canvasSize, setCanvasSize] = useState({ width: 960, height: 560 });
 

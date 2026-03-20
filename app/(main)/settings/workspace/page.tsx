@@ -2,14 +2,24 @@ import { redirect } from "next/navigation";
 import { getCurrentUserId } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 
-export default async function WorkspaceSettingsPage(): Promise<JSX.Element> {
+export default async function WorkspaceSettingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ workspaceId?: string }>;
+}): Promise<JSX.Element> {
   const userId = await getCurrentUserId();
   if (!userId) {
     redirect("/login");
   }
 
+  const resolvedSearchParams = (await searchParams) || {};
+  const workspaceId = resolvedSearchParams.workspaceId;
+
   const membership = await prisma.workspaceMember.findFirst({
-    where: { userId },
+    where: {
+      userId,
+      ...(workspaceId ? { workspaceId } : {}),
+    },
     include: {
       workspace: {
         include: {
@@ -17,6 +27,7 @@ export default async function WorkspaceSettingsPage(): Promise<JSX.Element> {
             include: {
               user: {
                 select: {
+                  id: true,
                   name: true,
                   email: true,
                 },
@@ -24,6 +35,11 @@ export default async function WorkspaceSettingsPage(): Promise<JSX.Element> {
             },
           },
         },
+      },
+    },
+    orderBy: {
+      workspace: {
+        createdAt: "asc",
       },
     },
   });
@@ -37,7 +53,10 @@ export default async function WorkspaceSettingsPage(): Promise<JSX.Element> {
           <div className="space-y-2">
             {membership.workspace.members.map((member) => (
               <p key={member.id} className="text-sm">
-                {member.user.name} ({member.user.email}) • {member.role}
+                {member.user.name}
+                {membership.role !== "VIEWER" || member.user.id === userId ? ` (${member.user.email})` : ""}
+                {" • "}
+                {member.role}
               </p>
             ))}
           </div>

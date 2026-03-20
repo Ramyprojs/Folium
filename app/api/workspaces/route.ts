@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { errorResponse, requireUser } from "@/lib/api";
+import { requireUser } from "@/lib/api";
 import { workspaceCreateSchema } from "@/lib/validators";
 
 export async function GET(): Promise<NextResponse> {
