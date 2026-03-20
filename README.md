@@ -1,151 +1,174 @@
-# Folium
+<p align="center">
+  <img alt="Folium" src="docs/logo.png" width="96" />
+</p>
 
-Folium is a modern, Notion-inspired workspace app built with Next.js, Prisma, and Tiptap. It supports collaborative-style page organization, rich content editing, authentication, shareable pages, and production deployment on Vercel.
+<p align="center">
+  A modern, Notion-inspired workspace for organized thinking.
+</p>
 
-## Tech Stack
+<p align="center">
+  <a href="https://folium-delta.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-folium--delta.vercel.app-0ea5e9?style=for-the-badge" alt="Live Demo" /></a>
+  <a href="https://github.com/Ramyprojs/Folium/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge" alt="MIT License" /></a>
+  <img src="https://img.shields.io/badge/Built%20with-Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Built with Next.js" />
+</p>
 
-- Next.js 15 (App Router) + TypeScript
-- React 18 + Tailwind CSS
-- Prisma + PostgreSQL (Neon/Supabase compatible)
-- NextAuth (Credentials + optional Google OAuth)
-- Tiptap editor with custom advanced image extension
-- TanStack Query + Zustand
-- Framer Motion
-- Cloudinary upload pipeline
+<p align="center">
+  <a href="https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs&logoColor=white"><img src="https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs&logoColor=white" alt="Next.js" /></a>
+  <a href="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white"><img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" /></a>
+  <a href="https://img.shields.io/badge/Tailwind%20CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white"><img src="https://img.shields.io/badge/Tailwind%20CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" /></a>
+  <a href="https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white"><img src="https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white" alt="Prisma" /></a>
+  <a href="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white"><img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
+  <a href="https://img.shields.io/badge/Tiptap-121212?style=flat-square&logo=tiptap&logoColor=white"><img src="https://img.shields.io/badge/Tiptap-121212?style=flat-square&logo=tiptap&logoColor=white" alt="Tiptap" /></a>
+  <a href="https://img.shields.io/badge/Zustand-4B5563?style=flat-square&logo=react&logoColor=white"><img src="https://img.shields.io/badge/Zustand-4B5563?style=flat-square&logo=react&logoColor=white" alt="Zustand" /></a>
+  <a href="https://img.shields.io/badge/Framer%20Motion-0055FF?style=flat-square&logo=framer&logoColor=white"><img src="https://img.shields.io/badge/Framer%20Motion-0055FF?style=flat-square&logo=framer&logoColor=white" alt="Framer Motion" /></a>
+  <a href="https://img.shields.io/badge/Cloudinary-3448C5?style=flat-square&logo=cloudinary&logoColor=white"><img src="https://img.shields.io/badge/Cloudinary-3448C5?style=flat-square&logo=cloudinary&logoColor=white" alt="Cloudinary" /></a>
+  <a href="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white"><img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker" /></a>
+</p>
 
-## Core Features
+## Overview
 
-### Workspace and Page Management
+Folium delivers a focused, modern workspace where teams and individuals can capture ideas, structure knowledge, and publish pages without friction. It combines a Notion-style information architecture with a powerful editor, media workflows, and lightweight collaboration patterns that feel fast in daily use. The app is designed for writers, product teams, researchers, and builders who need both creative freedom and clear organization. From quick notes to shareable documentation, Folium keeps thinking and execution in one place.
 
-- Multi-workspace model with owner/member roles
-- Hierarchical page tree (nested pages)
-- Favorite, archive, move, and share actions
-- Public page sharing endpoint
+- Live app: https://folium-delta.vercel.app
+- Repository: https://github.com/Ramyprojs/Folium
 
-### Rich Editing Experience
+## Screenshots
 
-- Tiptap-based editor with headings, lists, tasks, quote, code, divider, links
-- Slash command UI for fast block insertion
-- Advanced image node with resize, crop, align, lightbox, replace, caption
-- Drawing pad export/insert workflow
-- Debounced autosave
+> 📸 _Screenshots coming soon — add your own by replacing the image paths below._
 
-### Floating Notes (Productivity Layer)
+![Workspace](docs/workspace.png)
+![Editor](docs/editor.png)
+![Notes](docs/notes.png)
 
-- Draggable floating notes on workspace pages
-- Resize, minimize, maximize, close
-- Snap/dock to corners
-- Pin note always-on-top
-- Per-note customization:
-  - font family and font size
-  - light/dark note theme
-  - note background color
-  - note opacity
-- Multi-note support with independent state
-- Keyboard shortcut: `Cmd/Ctrl + Shift + N` to create a new note
+## Features
 
-### Uploads
+**Workspace & pages**
 
-- Image uploads from editor and cover picker
-- Generic file uploads (non-image files inserted as links)
-- Client-side large-image normalization for better reliability
-- Graceful fallback behavior when uploads are partially configured
+- Create and manage multiple workspaces with owner/member roles.
+- Build nested page structures for organized navigation and long-form content.
+- Favorite, archive, move, and share pages through a clean action model.
+- Publish selected pages publicly with share links.
 
-### Authentication
+**Rich text editing**
 
-- Email/password signup/login
-- Optional Google OAuth
-- JWT-based sessions via NextAuth
-- Route protection for app surfaces
+- Write with headings, lists, task items, code blocks, quotes, dividers, links, and slash commands.
+- Insert advanced images with resize, crop, align, lightbox, replace, and captions.
+- Sketch inside the app and insert drawings directly into pages.
+- Keep content safe with debounced autosave behavior.
 
-## Getting Started
+**Floating notes**
 
-### 1. Install dependencies
+- Open draggable notes on top of workspace pages for rapid side-by-side thinking.
+- Resize, minimize, maximize, close, and snap notes to corners.
+- Pin important notes on top while working across the page.
+- Launch multiple notes at once and multitask fluidly.
+- Create a new note instantly with `Cmd/Ctrl + Shift + N`.
+
+**Uploads & media**
+
+- Upload images and files from the editor.
+- Embed images inline and insert non-image files as links.
+- Use Cloudinary-powered uploads in production.
+- Fall back gracefully for limited upload scenarios when integrations are missing.
+
+**Authentication**
+
+- Sign up and sign in with email/password credentials.
+- Enable optional Google OAuth with NextAuth.
+- Use JWT sessions for secure authenticated workflows.
+
+## Getting started
+
+1. Clone the repository.
+
+```bash
+git clone https://github.com/Ramyprojs/Folium.git
+cd Folium
+```
+
+2. Install dependencies.
 
 ```bash
 npm install
 ```
 
-### 2. Configure environment
+3. Copy environment template and configure values.
 
 ```bash
 cp .env.example .env
 ```
 
-Minimum required variables:
-
-- `DATABASE_URL`
-- `NEXTAUTH_SECRET`
-
-Recommended in production:
-
-- `NEXTAUTH_URL`
-- `AUTH_DISABLED=false`
-
-Optional integrations:
-
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `CLOUDINARY_CLOUD_NAME`
-- `CLOUDINARY_API_KEY`
-- `CLOUDINARY_API_SECRET`
-- `NEXT_PUBLIC_UNSPLASH_ACCESS_KEY`
-
-### 3. Apply database migrations
+4. Run database migrations.
 
 ```bash
-npm run prisma:migrate:deploy
+npm run prisma:migrate
 ```
 
-For local development, `prisma:migrate` is also available.
-
-### 4. Run locally
+5. Start the development server.
 
 ```bash
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open http://localhost:3000.
 
-## Production Deployment (Vercel + Neon)
+### Environment variables
 
-1. Import repository into Vercel.
-2. Set required environment variables in Vercel project settings.
-3. Run Prisma migrations against your production database:
+| Variable | Required | Description |
+| --- | --- | --- |
+| `DATABASE_URL` | Yes | PostgreSQL connection string (Neon/Supabase compatible). |
+| `NEXTAUTH_SECRET` | Yes | Secret used by NextAuth for JWT/session encryption. |
+| `NEXTAUTH_URL` | Recommended (prod) | Canonical app URL for auth callbacks in production. |
+| `AUTH_DISABLED` | No | Development-only auth bypass flag. Keep `false` in production. |
+| `GOOGLE_CLIENT_ID` | No | Google OAuth client ID (optional login provider). |
+| `GOOGLE_CLIENT_SECRET` | No | Google OAuth client secret. |
+| `CLOUDINARY_CLOUD_NAME` | Recommended (prod uploads) | Cloudinary cloud name for media uploads. |
+| `CLOUDINARY_API_KEY` | Recommended (prod uploads) | Cloudinary API key. |
+| `CLOUDINARY_API_SECRET` | Recommended (prod uploads) | Cloudinary API secret. |
+| `NEXT_PUBLIC_UNSPLASH_ACCESS_KEY` | No | Unsplash search integration for cover browsing. |
+
+## Deployment
+
+Deploy Folium on Vercel with a Neon (or compatible PostgreSQL) database by setting production environment variables and connecting the repository.
+
+Run production migrations before or during release:
 
 ```bash
-DATABASE_URL="<your_db_url>" npx prisma migrate deploy
+DATABASE_URL="<your-production-database-url>" npx prisma migrate deploy
 ```
 
-4. Redeploy.
-
-### Important Upload Note
-
-For full binary upload support in production, configure Cloudinary variables. Without Cloudinary, some file flows are intentionally restricted/fallback-only.
+Cloudinary is required for full upload support in production. Without Cloudinary credentials, upload flows may be limited or fallback-only.
 
 ## Scripts
 
-```bash
-npm run dev
-npm run build
-npm run start
-npm run lint
-npm run prisma:generate
-npm run prisma:migrate
-npm run prisma:migrate:deploy
-npm run prisma:studio
-```
+| Script | Description |
+| --- | --- |
+| `npm run dev` | Start the Next.js development server. |
+| `npm run build` | Generate Prisma client and build the production app. |
+| `npm run start` | Run the built production server. |
+| `npm run lint` | Run ESLint checks across the codebase. |
+| `npm run prisma:generate` | Generate Prisma client from schema. |
+| `npm run prisma:migrate` | Create/apply local development migrations. |
+| `npm run prisma:migrate:deploy` | Apply existing migrations to target database. |
+| `npm run prisma:studio` | Open Prisma Studio for database inspection. |
 
-## API Surface (High-Level)
+## API overview
 
-- Auth: `/api/auth/[...nextauth]`, `/api/signup`
-- Workspaces: `/api/workspaces`, `/api/workspaces/[id]`, `/api/workspaces/[id]/members`
-- Pages: `/api/pages`, `/api/pages/[id]`, `/api/pages/[id]/children`, `/api/pages/[id]/move`, `/api/pages/[id]/archive`, `/api/pages/[id]/favorite`, `/api/pages/[id]/share`
-- Data rows: `/api/databases/[id]/rows`, `/api/databases/[id]/rows/[rid]`
-- Search: `/api/search`
-- Upload: `/api/upload`
-- Comments: `/api/comments/[id]`
+| Group | Paths |
+| --- | --- |
+| Auth | `/api/auth/[...nextauth]`, `/api/signup` |
+| Workspaces | `/api/workspaces`, `/api/workspaces/[id]`, `/api/workspaces/[id]/members` |
+| Pages | `/api/pages`, `/api/pages/[id]`, `/api/pages/[id]/children`, `/api/pages/[id]/move`, `/api/pages/[id]/archive`, `/api/pages/[id]/favorite`, `/api/pages/[id]/share` |
+| Upload | `/api/upload` |
+| Search | `/api/search` |
+| Comments | `/api/comments/[id]` |
 
-## Project Status
+## Contributing
 
-Folium is actively evolving, with emphasis on practical editing workflows, deployability, and user-facing UX polish across desktop and mobile.
+Contributions, ideas, and improvements are welcome. Open an issue to discuss bugs or feature proposals before submitting a pull request.
+
+- Issues: https://github.com/Ramyprojs/Folium/issues
+
+## License
+
+MIT
