@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/api";
+import { errorResponse, requireUser } from "@/lib/api";
 import { workspaceCreateSchema } from "@/lib/validators";
 
 export async function GET(): Promise<NextResponse> {
@@ -57,13 +57,13 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const parsed = workspaceCreateSchema.safeParse(payload);
   if (!parsed.success) {
-    payload = { name: "New Workspace" };
+    return errorResponse("Invalid payload", 422);
   }
 
   const workspace = await prisma.workspace.create({
     data: {
-      name: String((payload.name as string) || "New Workspace"),
-      icon: typeof payload.icon === "string" ? payload.icon : undefined,
+      name: parsed.data.name,
+      icon: parsed.data.icon,
       ownerId: userId,
       members: {
         create: {

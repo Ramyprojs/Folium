@@ -214,19 +214,53 @@ export function AuthExperience({
       return;
     }
 
-    setLoading(true);
-    setSuccess(false);
+    try {
+      setLoading(true);
+      setSuccess(false);
 
-    if (mode === "login") {
-      const result = await signIn("credentials", {
+      if (mode === "login") {
+        const result = await signIn("credentials", {
+          redirect: false,
+          email,
+          password,
+          callbackUrl: "/dashboard",
+        });
+
+        if (!result || result.error) {
+          setErrors({ password: "Invalid credentials." });
+          setLoading(false);
+          return;
+        }
+
+        setSuccess(true);
+        window.setTimeout(() => {
+          router.push("/dashboard");
+        }, 520);
+        return;
+      }
+
+      const signupResponse = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      if (!signupResponse.ok) {
+        const body = (await signupResponse.json()) as { error?: string };
+        setErrors({ email: body.error || "Unable to create account." });
+        setLoading(false);
+        return;
+      }
+
+      const signInResult = await signIn("credentials", {
         redirect: false,
         email,
         password,
         callbackUrl: "/dashboard",
       });
 
-      if (result?.error) {
-        setErrors({ password: "Invalid credentials." });
+      if (!signInResult || signInResult.error) {
+        setErrors({ email: "Account created. Please sign in manually." });
         setLoading(false);
         return;
       }
@@ -235,33 +269,10 @@ export function AuthExperience({
       window.setTimeout(() => {
         router.push("/dashboard");
       }, 520);
-      return;
-    }
-
-    const signupResponse = await fetch("/api/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
-    });
-
-    if (!signupResponse.ok) {
-      const body = (await signupResponse.json()) as { error?: string };
-      setErrors({ email: body.error || "Unable to create account." });
+    } catch {
+      setErrors({ email: "Unexpected error. Please try again." });
       setLoading(false);
-      return;
     }
-
-    await signIn("credentials", {
-      redirect: false,
-      email,
-      password,
-      callbackUrl: "/dashboard",
-    });
-
-    setSuccess(true);
-    window.setTimeout(() => {
-      router.push("/dashboard");
-    }, 520);
   };
 
   return (
