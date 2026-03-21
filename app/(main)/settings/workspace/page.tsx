@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { WorkspaceSettingsPanel } from "@/components/settings/workspace-settings-panel";
 import { getCurrentUserId } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 
@@ -49,7 +50,13 @@ export default async function WorkspaceSettingsPage({
       <h1 className="mb-6 text-3xl font-semibold">Workspace settings</h1>
       {membership?.workspace ? (
         <div className="space-y-4 rounded-lg border bg-card p-4">
-          <p className="text-lg font-medium">{membership.workspace.name}</p>
+          <WorkspaceSettingsPanel
+            workspaceId={membership.workspace.id}
+            initialName={membership.workspace.name}
+            canRename={membership.role === "OWNER"}
+          />
+
+          <p className="text-lg font-medium">Members</p>
           <div className="space-y-2">
             {membership.workspace.members.map((member) => (
               <p key={member.id} className="text-sm">

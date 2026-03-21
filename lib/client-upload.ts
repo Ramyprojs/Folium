@@ -1,7 +1,8 @@
 "use client";
 
-const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const MAX_INLINE_FALLBACK_BYTES = 2 * 1024 * 1024;
+const MAX_INLINE_FALLBACK_HARD_LIMIT_BYTES = 6 * 1024 * 1024;
 
 type UploadResult = {
   url: string;
@@ -28,45 +29,86 @@ async function normalizeImageForUpload(file: File): Promise<File> {
     return file;
   }
 
+  return compressImageToTargetSize(file, MAX_UPLOAD_BYTES);
+}
+
+async function loadImage(file: File): Promise<HTMLImageElement> {
   const objectUrl = URL.createObjectURL(file);
 
   try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    return await new Promise<HTMLImageElement>((resolve, reject) => {
       const img = new Image();
       img.onload = () => resolve(img);
       img.onerror = () => reject(new Error("Unable to process image."));
       img.src = objectUrl;
     });
-
-    const longestSide = Math.max(image.naturalWidth, image.naturalHeight);
-    const maxDimension = 2400;
-    const ratio = longestSide > maxDimension ? maxDimension / longestSide : 1;
-    const targetWidth = Math.max(1, Math.round(image.naturalWidth * ratio));
-    const targetHeight = Math.max(1, Math.round(image.naturalHeight * ratio));
-
-    const canvas = document.createElement("canvas");
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-
-    const context = canvas.getContext("2d");
-    if (!context) {
-      return file;
-    }
-
-    context.drawImage(image, 0, 0, targetWidth, targetHeight);
-
-    const encoded = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, "image/jpeg", 0.82);
-    });
-
-    if (!encoded) {
-      return file;
-    }
-
-    return new File([encoded], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
   } finally {
     URL.revokeObjectURL(objectUrl);
   }
+}
+
+async function renderCompressedBlob(
+  image: HTMLImageElement,
+  width: number,
+  height: number,
+  quality: number,
+): Promise<Blob | null> {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return null;
+  }
+
+  context.drawImage(image, 0, 0, width, height);
+
+  return new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", quality);
+  });
+}
+
+async function compressImageToTargetSize(file: File, targetBytes: number): Promise<File> {
+  if (!file.type.startsWith("image/")) {
+    return file;
+  }
+
+  const image = await loadImage(file);
+  let bestBlob: Blob | null = null;
+  let scale = 1;
+  let quality = 0.86;
+
+  for (let pass = 0; pass < 8; pass += 1) {
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const blob = await renderCompressedBlob(image, width, height, quality);
+
+    if (!blob) {
+      break;
+    }
+
+    if (!bestBlob || blob.size < bestBlob.size) {
+      bestBlob = blob;
+    }
+
+    if (blob.size <= targetBytes) {
+      bestBlob = blob;
+      break;
+    }
+
+    if (pass % 2 === 0) {
+      quality = Math.max(0.45, quality - 0.12);
+    } else {
+      scale *= 0.82;
+    }
+  }
+
+  if (!bestBlob) {
+    return file;
+  }
+
+  return new File([bestBlob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
 }
 
 async function fileFromDataUrl(dataUrl: string, fileName: string): Promise<File> {
@@ -77,8 +119,7 @@ async function fileFromDataUrl(dataUrl: string, fileName: string): Promise<File>
 }
 
 export async function uploadImageFile(file: File): Promise<string> {
-  const preparedFile = await normalizeImageForUpload(file);
-  const result = await uploadFileInternal(preparedFile, true);
+  const result = await uploadFileInternal(file, true);
   return result.url;
 }
 
@@ -104,15 +145,20 @@ async function uploadFileInternal(file: File, allowInlineImageFallback: boolean)
       response.status === 503 &&
       body.error?.toLowerCase().includes("not configured")
     ) {
-      if (preparedFile.size > MAX_INLINE_FALLBACK_BYTES) {
-        throw new Error("Uploads are not configured yet. Configure Cloudinary or upload an image under 2 MB.");
+      const fallbackFile =
+        preparedFile.size > MAX_INLINE_FALLBACK_BYTES
+          ? await compressImageToTargetSize(preparedFile, MAX_INLINE_FALLBACK_BYTES)
+          : preparedFile;
+
+      if (fallbackFile.size > MAX_INLINE_FALLBACK_HARD_LIMIT_BYTES) {
+        throw new Error("Uploads are not configured yet. Configure Cloudinary or use a smaller image.");
       }
 
       return {
-        url: await readDataUrl(preparedFile),
-        name: preparedFile.name,
-        mimeType: preparedFile.type || "image/png",
-        size: preparedFile.size,
+        url: await readDataUrl(fallbackFile),
+        name: fallbackFile.name,
+        mimeType: fallbackFile.type || "image/png",
+        size: fallbackFile.size,
       };
     }
 
