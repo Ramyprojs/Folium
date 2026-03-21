@@ -42,9 +42,9 @@ export function CustomCursor(): JSX.Element | null {
     if (mode === "image") {
       return {
         ringSize: 34,
-        color: "rgba(255,255,255,0.9)",
-        borderWidth: 1,
-        boxShadow: "0 0 16px rgba(31,31,31,0.25)",
+        color: "rgba(17,24,39,0.92)",
+        borderWidth: 2,
+        boxShadow: "0 0 0 2px rgba(255,255,255,0.92), 0 0 16px rgba(17,24,39,0.35)",
       };
     }
     if (mode === "sidebar") {

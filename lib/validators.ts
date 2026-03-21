@@ -30,7 +30,7 @@ export const pageCreateSchema = z.object({
 export const pagePatchSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   icon: z.string().nullable().optional(),
-  coverImage: z.string().max(5000).nullable().optional(),
+  coverImage: z.string().max(15000000).nullable().optional(),
   content: z.record(z.string(), z.any()).or(z.array(z.any())).optional(),
   parentId: z.string().cuid().nullable().optional(),
   isPublic: z.boolean().optional(),

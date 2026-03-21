@@ -384,25 +384,28 @@ export function TiptapEditor({ pageId, workspaceId, content, contentRevision }: 
             transition={{ duration: 0.2 }}
             className="mb-3 flex flex-wrap gap-2 border-b pb-3"
           >
-            <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleBold().run()}>
+            <Button size="sm" variant={editor?.isActive('bold') ? 'default' : 'outline'} onClick={() => editor?.chain().focus().toggleBold().run()}>
               <Bold className="mr-1 h-3.5 w-3.5" /> Bold
             </Button>
-            <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleItalic().run()}>
+            <Button size="sm" variant={editor?.isActive('italic') ? 'default' : 'outline'} onClick={() => editor?.chain().focus().toggleItalic().run()}>
               <Italic className="mr-1 h-3.5 w-3.5" /> Italic
             </Button>
-            <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}>
+            <Button size="sm" variant={editor?.isActive('heading', { level: 1 }) ? 'default' : 'outline'} onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}>
               <Heading1 className="mr-1 h-3.5 w-3.5" /> H1
             </Button>
-            <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleBulletList().run()}>
-              <List className="mr-1 h-3.5 w-3.5" /> List
+            <Button size="sm" variant={editor?.isActive('bulletList') ? 'default' : 'outline'} onClick={() => editor?.chain().focus().toggleBulletList().run()}>
+              <List className="mr-1 h-3.5 w-3.5" /> Bullet List
             </Button>
-            <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleTaskList().run()}>
+            <Button size="sm" variant={editor?.isActive('orderedList') ? 'default' : 'outline'} onClick={() => editor?.chain().focus().toggleOrderedList().run()}>
+              <List className="mr-1 h-3.5 w-3.5" /> Numbered
+            </Button>
+            <Button size="sm" variant={editor?.isActive('taskList') ? 'default' : 'outline'} onClick={() => editor?.chain().focus().toggleTaskList().run()}>
               <ListChecks className="mr-1 h-3.5 w-3.5" /> Todo
             </Button>
-            <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleBlockquote().run()}>
+            <Button size="sm" variant={editor?.isActive('blockquote') ? 'default' : 'outline'} onClick={() => editor?.chain().focus().toggleBlockquote().run()}>
               <Quote className="mr-1 h-3.5 w-3.5" /> Quote
             </Button>
-            <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().toggleCodeBlock().run()}>
+            <Button size="sm" variant={editor?.isActive('codeBlock') ? 'default' : 'outline'} onClick={() => editor?.chain().focus().toggleCodeBlock().run()}>
               <Code2 className="mr-1 h-3.5 w-3.5" /> Code
             </Button>
             <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().setHorizontalRule().run()}>

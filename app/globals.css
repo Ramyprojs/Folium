@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -330,6 +331,22 @@ body.cursor-enhanced * {
 
 .notion-editor .ProseMirror blockquote {
   @apply border-l-4 border-muted pl-4 text-muted-foreground;
+}
+
+.notion-editor .ProseMirror ul:not([data-type="taskList"]) {
+  @apply my-2 ml-6 list-disc space-y-1;
+}
+
+.notion-editor .ProseMirror ul:not([data-type="taskList"]) ul {
+  @apply ml-6;
+}
+
+.notion-editor .ProseMirror ol {
+  @apply my-2 ml-6 list-decimal space-y-1;
+}
+
+.notion-editor .ProseMirror li:not([data-type="taskItem"]) {
+  @apply text-base;
 }
 
 .notion-editor .ProseMirror ul[data-type="taskList"] {

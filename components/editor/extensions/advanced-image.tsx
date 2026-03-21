@@ -17,7 +17,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import ReactCrop, {
-  type Crop as CropSelection,
+  type PercentCrop,
   centerCrop,
   convertToPixelCrop,
   makeAspectCrop,
@@ -72,7 +72,7 @@ function pxValue(width: string | undefined, parentWidth: number, originalWidth: 
   return originalWidth;
 }
 
-function defaultCenteredCrop(mediaWidth: number, mediaHeight: number, aspect: number | undefined): CropSelection {
+function defaultCenteredCrop(mediaWidth: number, mediaHeight: number, aspect: number | undefined): PercentCrop {
   if (!aspect) {
     return {
       unit: "%",
@@ -80,7 +80,7 @@ function defaultCenteredCrop(mediaWidth: number, mediaHeight: number, aspect: nu
       y: 10,
       width: 80,
       height: 80,
-    };
+    } as PercentCrop;
   }
 
   return centerCrop(
@@ -95,7 +95,7 @@ function defaultCenteredCrop(mediaWidth: number, mediaHeight: number, aspect: nu
     ),
     mediaWidth,
     mediaHeight,
-  );
+  ) as PercentCrop;
 }
 
 function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }: NodeViewProps): JSX.Element {
@@ -109,7 +109,7 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
   const [resizeLabel, setResizeLabel] = useState("");
   const [cropOpen, setCropOpen] = useState(false);
   const [cropAspect, setCropAspect] = useState<number | null>(null);
-  const [crop, setCrop] = useState<CropSelection>({ unit: "%", x: 10, y: 10, width: 80, height: 80 });
+  const [crop, setCrop] = useState<PercentCrop>({ unit: "%", x: 10, y: 10, width: 80, height: 80 });
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -151,35 +151,43 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
     document.body.style.cursor = resizeCursor;
 
     const onMove = (moveEvent: PointerEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const deltaY = moveEvent.clientY - startY;
-      const horizontalHandle = handle.includes("e") || handle.includes("w");
-      const verticalHandle = handle.includes("n") || handle.includes("s");
-      const direction = handle.includes("w") ? -1 : 1;
+      try {
+        const deltaX = moveEvent.clientX - startX;
+        const deltaY = moveEvent.clientY - startY;
+        const horizontalHandle = handle.includes("e") || handle.includes("w");
+        const verticalHandle = handle.includes("n") || handle.includes("s");
+        const direction = handle.includes("w") ? -1 : 1;
 
-      const draftWidth = Math.max(
-        80,
-        Math.round(initialWidth + (horizontalHandle ? deltaX * direction : verticalHandle ? deltaY : deltaX)),
-      );
+        const draftWidth = Math.max(
+          80,
+          Math.round(initialWidth + (horizontalHandle ? deltaX * direction : verticalHandle ? deltaY : deltaX)),
+        );
 
-      const snapTargets = [0.25, 0.5, 0.75, 1].map((ratio) => ({
-        ratio,
-        width: parentWidth * ratio,
-      }));
+        const snapTargets = [0.25, 0.5, 0.75, 1].map((ratio) => ({
+          ratio,
+          width: parentWidth * ratio,
+        }));
 
-      const nearSnap = snapTargets.find((target) => Math.abs(target.width - draftWidth) <= 14);
-      const nextWidth = nearSnap ? `${Math.round(nearSnap.ratio * 100)}%` : `${draftWidth}px`;
-      updateAttributes({ width: nextWidth });
+        const nearSnap = snapTargets.find((target) => Math.abs(target.width - draftWidth) <= 14);
+        const nextWidth = nearSnap ? `${Math.round(nearSnap.ratio * 100)}%` : `${draftWidth}px`;
+        updateAttributes({ width: nextWidth });
 
-      const resolvedWidth = nearSnap ? nearSnap.width : draftWidth;
-      const resolvedHeight = Math.round((resolvedWidth / naturalSize.width) * naturalSize.height);
-      setResizeLabel(`${Math.round(resolvedWidth)} × ${resolvedHeight}`);
+        const resolvedWidth = nearSnap ? nearSnap.width : draftWidth;
+        const resolvedHeight = Math.round((resolvedWidth / naturalSize.width) * naturalSize.height);
+        setResizeLabel(`${Math.round(resolvedWidth)} × ${resolvedHeight}`);
+      } catch (error) {
+        console.error("Resize error:", error);
+      }
     };
 
     const onUp = () => {
       setResizing(null);
       setResizeLabel("");
-      document.body.style.cursor = previousCursor;
+      try {
+        document.body.style.cursor = previousCursor;
+      } catch {
+        document.body.style.cursor = "auto";
+      }
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
@@ -219,38 +227,41 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
     }
 
     const pixelCrop = convertToPixelCrop(crop, image.naturalWidth, image.naturalHeight);
-    if (pixelCrop.width <= 0 || pixelCrop.height <= 0) {
+    if (!pixelCrop || pixelCrop.width <= 0 || pixelCrop.height <= 0) {
+      toast.error("Invalid crop selection. Please try again.");
       return;
     }
 
     const canvas = document.createElement("canvas");
-    canvas.width = pixelCrop.width;
-    canvas.height = pixelCrop.height;
-    const context = canvas.getContext("2d");
+    canvas.width = Math.round(pixelCrop.width);
+    canvas.height = Math.round(pixelCrop.height);
+    const context = canvas.getContext("2d", { willReadFrequently: true });
 
     if (!context) {
+      toast.error("Unable to process image. Your browser does not support canvas editing.");
       return;
     }
 
-    context.drawImage(
-      image,
-      pixelCrop.x,
-      pixelCrop.y,
-      pixelCrop.width,
-      pixelCrop.height,
-      0,
-      0,
-      pixelCrop.width,
-      pixelCrop.height,
-    );
-
     try {
-      const dataUrl = canvas.toDataURL("image/png");
-      const uploadedUrl = await uploadImageDataUrl(dataUrl, attrs.fileName || `folium-image-${Date.now()}.png`);
+      context.drawImage(
+        image,
+        Math.round(pixelCrop.x),
+        Math.round(pixelCrop.y),
+        Math.round(pixelCrop.width),
+        Math.round(pixelCrop.height),
+        0,
+        0,
+        Math.round(pixelCrop.width),
+        Math.round(pixelCrop.height),
+      );
+
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+      const uploadedUrl = await uploadImageDataUrl(dataUrl, attrs.fileName || `folium-image-${Date.now()}.jpg`);
       updateAttributes({ src: uploadedUrl, width: "original" });
       setCropOpen(false);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to update image.");
+    } catch (cropError) {
+      console.error("Crop error:", cropError);
+      toast.error(cropError instanceof Error ? cropError.message : "Unable to update image.");
     }
   };
 
@@ -384,7 +395,11 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
                 ))}
               </div>
 
-              <ReactCrop crop={crop} onChange={(nextCrop) => setCrop(nextCrop)} aspect={cropAspect ?? undefined}>
+              <ReactCrop
+                crop={crop}
+                onChange={(_, percentCrop) => setCrop(percentCrop)}
+                aspect={cropAspect ?? undefined}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   ref={imageRef}
@@ -435,7 +450,18 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
                     <div
                       key={handle}
                       onPointerDown={(event) => handleResize(handle, event)}
-                      className="absolute h-3 w-3 rounded-sm border border-gray-700 bg-white"
+                      onMouseEnter={(e) => {
+                        const el = e.currentTarget as HTMLElement;
+                        el.style.cursor =
+                          handle === "n" || handle === "s"
+                            ? "ns-resize"
+                            : handle === "e" || handle === "w"
+                              ? "ew-resize"
+                              : handle === "ne" || handle === "sw"
+                                ? "nesw-resize"
+                                : "nwse-resize";
+                      }}
+                      className="absolute h-3 w-3 rounded-sm border border-gray-700 bg-white transition-colors hover:bg-gray-200"
                       style={{
                         left:
                           handle === "w" || handle === "nw" || handle === "sw"

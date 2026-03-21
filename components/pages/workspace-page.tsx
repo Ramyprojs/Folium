@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 import Picker from "@emoji-mart/react";
 import emojiData from "@emoji-mart/data";
 import {
@@ -266,8 +267,13 @@ export function WorkspacePageClient({
   } = unsplashResults;
 
   const applyImageCover = (url: string, focalY = 50) => {
+    if (!url || url.trim().length === 0) {
+      toast.error("Invalid image URL");
+      return;
+    }
     const encoded = encodeImageCover(url, focalY);
     setCoverFocalY(focalY);
+    // Optimistically update the parsed cover to show immediate visual feedback
     save({ coverImage: encoded });
   };
 
