@@ -12,7 +12,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     const parsed = authSignupSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      const firstError = Object.values(fieldErrors).flat().find(Boolean);
+      return NextResponse.json({ error: firstError ?? "Please check your signup details and try again." }, { status: 422 });
     }
 
     const normalizedEmail = normalizeEmail(parsed.data.email);

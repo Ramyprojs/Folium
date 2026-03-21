@@ -27,6 +27,33 @@ const featureHighlights = [
 
 const orbPalette = ["#7c3aed", "#14b8a6", "#ec4899", "#f59e0b", "#8b5cf6", "#06b6d4"] as const;
 
+function extractApiErrorMessage(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== "object") {
+    return fallback;
+  }
+
+  const candidate = (payload as { error?: unknown }).error;
+  if (typeof candidate === "string" && candidate.trim()) {
+    return candidate;
+  }
+
+  if (candidate && typeof candidate === "object") {
+    const fieldErrors = (candidate as { fieldErrors?: unknown }).fieldErrors;
+    if (fieldErrors && typeof fieldErrors === "object") {
+      for (const value of Object.values(fieldErrors as Record<string, unknown>)) {
+        if (Array.isArray(value)) {
+          const firstString = value.find((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
+          if (firstString) {
+            return firstString;
+          }
+        }
+      }
+    }
+  }
+
+  return fallback;
+}
+
 function passwordStrength(value: string): { label: string; level: number; color: string } {
   let score = 0;
   if (value.length >= 8) score += 1;
@@ -246,8 +273,14 @@ export function AuthExperience({
       });
 
       if (!signupResponse.ok) {
-        const body = (await signupResponse.json()) as { error?: string };
-        setErrors({ email: body.error || "Unable to create account." });
+        let payload: unknown = null;
+        try {
+          payload = await signupResponse.json();
+        } catch {
+          payload = null;
+        }
+
+        setErrors({ email: extractApiErrorMessage(payload, "Unable to create account.") });
         setLoading(false);
         return;
       }
