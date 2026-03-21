@@ -139,6 +139,17 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
 
     setResizing(handle);
 
+    const resizeCursor =
+      handle === "n" || handle === "s"
+        ? "ns-resize"
+        : handle === "e" || handle === "w"
+          ? "ew-resize"
+          : handle === "ne" || handle === "sw"
+            ? "nesw-resize"
+            : "nwse-resize";
+    const previousCursor = document.body.style.cursor;
+    document.body.style.cursor = resizeCursor;
+
     const onMove = (moveEvent: PointerEvent) => {
       const deltaX = moveEvent.clientX - startX;
       const deltaY = moveEvent.clientY - startY;
@@ -168,6 +179,7 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
     const onUp = () => {
       setResizing(null);
       setResizeLabel("");
+      document.body.style.cursor = previousCursor;
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
@@ -338,15 +350,15 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
           type="button"
           className="group relative inline-flex items-center gap-2 rounded-full border bg-muted/60 px-2 py-1 text-xs"
           onClick={() => updateAttributes({ minimized: false })}
-          draggable
+          draggable={false}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={attrs.src} alt={attrs.alt || "thumbnail"} className="h-8 w-8 rounded object-cover" />
+          <img src={attrs.src} alt={attrs.alt || "thumbnail"} className="h-8 w-8 rounded object-cover" draggable={false} />
           <span className="max-w-[180px] truncate">{attrs.fileName || filenameFromSrc(attrs.src)}</span>
           <Expand className="h-3.5 w-3.5" />
           <span className="pointer-events-none absolute -top-40 left-1/2 hidden -translate-x-1/2 rounded-lg border bg-popover p-2 shadow-xl group-hover:block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={attrs.src} alt="Preview" className="h-[150px] w-[200px] rounded object-cover" />
+            <img src={attrs.src} alt="Preview" className="h-[150px] w-[200px] rounded object-cover" draggable={false} />
           </span>
         </button>
       ) : (
@@ -404,6 +416,7 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
                 src={attrs.src}
                 alt={attrs.alt || "Image"}
                 title={attrs.title}
+                draggable={false}
                 className="block w-full rounded-lg border shadow-sm"
                 style={{ width: "100%", maxWidth: attrs.width === "original" ? `${naturalSize.width}px` : undefined }}
                 onLoad={(event) => {

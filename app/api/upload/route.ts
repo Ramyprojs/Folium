@@ -3,15 +3,12 @@ import { cloudinary, hasCloudinaryConfig } from "@/lib/cloudinary";
 import { requireUser } from "@/lib/api";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+const MAX_INLINE_IMAGE_FALLBACK_BYTES = 6 * 1024 * 1024;
 
 export async function POST(request: Request): Promise<NextResponse> {
   const userId = await requireUser();
   if (typeof userId !== "string") {
     return userId;
-  }
-
-  if (!hasCloudinaryConfig) {
-    return NextResponse.json({ error: "File uploads are not configured for this deployment" }, { status: 503 });
   }
 
   const formData = await request.formData();
@@ -29,6 +26,26 @@ export async function POST(request: Request): Promise<NextResponse> {
   const base64 = Buffer.from(bytes).toString("base64");
   const mimeType = file.type || "application/octet-stream";
   const dataUrl = `data:${mimeType};base64,${base64}`;
+
+  if (!hasCloudinaryConfig) {
+    if (mimeType.startsWith("image/")) {
+      if (file.size > MAX_INLINE_IMAGE_FALLBACK_BYTES) {
+        return NextResponse.json(
+          { error: "Image is too large for fallback upload. Configure Cloudinary or use a smaller image." },
+          { status: 413 },
+        );
+      }
+
+      return NextResponse.json({
+        url: dataUrl,
+        name: file.name,
+        mimeType,
+        size: file.size,
+      });
+    }
+
+    return NextResponse.json({ error: "File uploads are not configured for this deployment" }, { status: 503 });
+  }
 
   try {
     const upload = await cloudinary.uploader.upload(dataUrl, {

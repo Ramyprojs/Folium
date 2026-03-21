@@ -41,6 +41,7 @@ type TiptapEditorProps = {
   pageId: string;
   workspaceId: string;
   content: Record<string, unknown>;
+  contentRevision?: string;
 };
 
 type SlashItem = {
@@ -51,15 +52,20 @@ type SlashItem = {
   run: () => void;
 };
 
-export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps): JSX.Element {
+export function TiptapEditor({ pageId, workspaceId, content, contentRevision }: TiptapEditorProps): JSX.Element {
   const { save } = useAutoSaveEditor(pageId);
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashQuery, setSlashQuery] = useState("");
   const [slashActiveIndex, setSlashActiveIndex] = useState(0);
   const [editorFocused, setEditorFocused] = useState(false);
   const [showDrawingPanel, setShowDrawingPanel] = useState(false);
+  const [uploadingCount, setUploadingCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const lastSyncedContentRef = useRef<string | null>(null);
+  const lastRevisionRef = useRef<string | null>(null);
+  const currentPageIdRef = useRef(pageId);
+  const hasLocalEditsRef = useRef(false);
+  const idleLocalEditsTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -89,6 +95,13 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
     onFocus: () => setEditorFocused(true),
     onBlur: () => setEditorFocused(false),
     onUpdate: ({ editor: current }) => {
+      hasLocalEditsRef.current = true;
+      if (idleLocalEditsTimerRef.current) {
+        clearTimeout(idleLocalEditsTimerRef.current);
+      }
+      idleLocalEditsTimerRef.current = setTimeout(() => {
+        hasLocalEditsRef.current = false;
+      }, 1800);
       save({ content: current.getJSON() as Record<string, unknown> });
     },
   });
@@ -99,16 +112,37 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
     }
 
     const incoming = JSON.stringify(content);
+    const revision = contentRevision || incoming;
+
+    if (currentPageIdRef.current !== pageId) {
+      currentPageIdRef.current = pageId;
+      hasLocalEditsRef.current = false;
+      lastSyncedContentRef.current = incoming;
+      lastRevisionRef.current = revision;
+      editor.commands.setContent(content, { emitUpdate: false });
+      return;
+    }
+
     if (lastSyncedContentRef.current === null) {
       lastSyncedContentRef.current = incoming;
+      lastRevisionRef.current = revision;
+      return;
+    }
+
+    if (revision === lastRevisionRef.current) {
+      return;
+    }
+
+    if (hasLocalEditsRef.current || editorFocused) {
       return;
     }
 
     if (incoming !== JSON.stringify(editor.getJSON())) {
       editor.commands.setContent(content, { emitUpdate: false });
       lastSyncedContentRef.current = incoming;
+      lastRevisionRef.current = revision;
     }
-  }, [content, editor]);
+  }, [content, contentRevision, editor, editorFocused, pageId]);
 
   const slashActions = useMemo<SlashItem[]>(
     () => [
@@ -197,9 +231,22 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
       {
         section: "Media",
         name: "Code Block",
-        description: "Display code with formatting",
+        description: "Insert markdown code fence template",
         icon: <Code2 className="h-4 w-4" />,
-        run: () => editor?.chain().focus().toggleCodeBlock().run(),
+        run: () =>
+          editor
+            ?.chain()
+            .focus()
+            .insertContent({
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "```ts\n// your code here\n```",
+                },
+              ],
+            })
+            .run(),
       },
     ],
     [editor],
@@ -240,7 +287,11 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
       return;
     }
 
-    for (const file of Array.from(files)) {
+    const selectedFiles = Array.from(files);
+    setUploadingCount((prev) => prev + selectedFiles.length);
+
+    await Promise.allSettled(
+      selectedFiles.map(async (file) => {
       if (file.type.startsWith("image/")) {
         try {
           const uploadedUrl = await uploadImageFile(file);
@@ -248,7 +299,7 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
         } catch (error) {
           toast.error(error instanceof Error ? error.message : `Unable to upload ${file.name}.`);
         }
-        continue;
+        return;
       }
 
       try {
@@ -281,7 +332,10 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
       } catch (error) {
         toast.error(error instanceof Error ? error.message : `Unable to upload ${file.name}.`);
       }
-    }
+    }),
+    );
+
+    setUploadingCount((prev) => Math.max(0, prev - selectedFiles.length));
   };
 
   return (
@@ -465,6 +519,7 @@ export function TiptapEditor({ pageId, workspaceId, content }: TiptapEditorProps
           <Button size="sm" variant="ghost" className="transition-colors hover:bg-accent" onClick={() => setShowDrawingPanel(true)}>
             <Palette className="h-4 w-4" />
           </Button>
+          {uploadingCount > 0 && <span className="px-2 text-xs text-muted-foreground">Uploading {uploadingCount}</span>}
         </div>
       </div>
     </div>

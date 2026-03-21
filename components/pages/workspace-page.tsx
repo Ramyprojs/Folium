@@ -436,7 +436,7 @@ export function WorkspacePageClient({
                 ]);
               }}
             >
-              <Star className="h-4 w-4" />
+              <Star className={`h-4 w-4 ${pageQuery.data.page.isFavorited ? "fill-yellow-400 text-yellow-500" : ""}`} />
             </Button>
             <Button
               aria-label="Archive page"
@@ -652,7 +652,12 @@ export function WorkspacePageClient({
           <p className="mb-6 text-xs text-muted-foreground">
             Last edited by {pageQuery.data.page.createdBy.name} • {formatDistanceToNow(new Date(pageQuery.data.page.updatedAt), { addSuffix: true })}
           </p>
-          <TiptapEditor pageId={pageId} workspaceId={workspaceId} content={content} />
+          <TiptapEditor
+            pageId={pageId}
+            workspaceId={workspaceId}
+            content={content}
+            contentRevision={pageQuery.data.page.updatedAt}
+          />
         </motion.div>
 
         <AnimatePresence>
