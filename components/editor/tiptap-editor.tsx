@@ -313,18 +313,19 @@ export function TiptapEditor({ pageId, workspaceId, content, contentRevision }: 
       {
         section: "Media",
         name: "Code Block",
-        description: "Insert markdown code fence template",
+        description: "Insert a syntax-highlighted code block",
         icon: <Code2 className="h-4 w-4" />,
         run: () =>
           editor
             ?.chain()
             .focus()
             .insertContent({
-              type: "paragraph",
+              type: "codeBlock",
+              attrs: { language: "typescript" },
               content: [
                 {
                   type: "text",
-                  text: "```ts\n// your code here\n```",
+                  text: "const greeting = 'Hello Folium';",
                 },
               ],
             })
@@ -487,7 +488,22 @@ export function TiptapEditor({ pageId, workspaceId, content, contentRevision }: 
             <Button size="sm" variant={editor?.isActive('blockquote') ? 'default' : 'outline'} onClick={() => editor?.chain().focus().toggleBlockquote().run()}>
               <Quote className="mr-1 h-3.5 w-3.5" /> Quote
             </Button>
-            <Button size="sm" variant={editor?.isActive('codeBlock') ? 'default' : 'outline'} onClick={() => editor?.chain().focus().toggleCodeBlock().run()}>
+            <Button
+              size="sm"
+              variant={editor?.isActive('codeBlock') ? 'default' : 'outline'}
+              onClick={() => {
+                if (!editor) {
+                  return;
+                }
+
+                if (editor.isActive("codeBlock")) {
+                  editor.chain().focus().setParagraph().run();
+                  return;
+                }
+
+                editor.chain().focus().setCodeBlock({ language: "typescript" }).run();
+              }}
+            >
               <Code2 className="mr-1 h-3.5 w-3.5" /> Code
             </Button>
             <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().setHorizontalRule().run()}>

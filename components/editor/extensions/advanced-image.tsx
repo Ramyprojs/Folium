@@ -133,7 +133,7 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
     }
 
     const parentWidth = parent.clientWidth;
-    const initialWidth = pxValue(attrs.width, parentWidth, naturalSize.width);
+    const initialWidth = Math.min(pxValue(attrs.width, parentWidth, naturalSize.width), parentWidth);
     const startX = event.clientX;
     const startY = event.clientY;
 
@@ -158,9 +158,12 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
         const verticalHandle = handle.includes("n") || handle.includes("s");
         const direction = handle.includes("w") ? -1 : 1;
 
-        const draftWidth = Math.max(
+        const draftWidth = Math.min(
+          parentWidth,
+          Math.max(
           80,
           Math.round(initialWidth + (horizontalHandle ? deltaX * direction : verticalHandle ? deltaY : deltaX)),
+          ),
         );
 
         const snapTargets = [0.25, 0.5, 0.75, 1].map((ratio) => ({
@@ -294,7 +297,7 @@ function AdvancedImageNodeView({ node, updateAttributes, deleteNode, selected }:
       onMouseLeave={() => setHovered(false)}
       data-folium-image-src={attrs.src}
       ref={blockRef}
-      style={{ width: imageWidthStyle }}
+      style={{ width: imageWidthStyle, maxWidth: "100%" }}
     >
       <input
         ref={replaceInputRef}

@@ -396,3 +396,64 @@ body.cursor-enhanced * {
 .notion-editor .ProseMirror pre {
   font-family: var(--font-mono);
 }
+
+.notion-editor .ProseMirror :not(pre) > code {
+  @apply rounded-md border bg-muted/60 px-1.5 py-0.5 text-[0.9em];
+}
+
+.notion-editor .ProseMirror pre {
+  @apply my-3 overflow-x-auto rounded-xl border p-3 text-[13px] leading-6;
+  background: #0f172a;
+  border-color: color-mix(in oklab, #334155 65%, transparent);
+  color: #e2e8f0;
+}
+
+.notion-editor .ProseMirror pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+.notion-editor .ProseMirror pre code .hljs-comment,
+.notion-editor .ProseMirror pre code .hljs-quote {
+  color: #94a3b8;
+}
+
+.notion-editor .ProseMirror pre code .hljs-keyword,
+.notion-editor .ProseMirror pre code .hljs-selector-tag,
+.notion-editor .ProseMirror pre code .hljs-literal,
+.notion-editor .ProseMirror pre code .hljs-title,
+.notion-editor .ProseMirror pre code .hljs-section,
+.notion-editor .ProseMirror pre code .hljs-doctag,
+.notion-editor .ProseMirror pre code .hljs-type,
+.notion-editor .ProseMirror pre code .hljs-name,
+.notion-editor .ProseMirror pre code .hljs-strong {
+  color: #c4b5fd;
+}
+
+.notion-editor .ProseMirror pre code .hljs-string,
+.notion-editor .ProseMirror pre code .hljs-meta .hljs-string,
+.notion-editor .ProseMirror pre code .hljs-regexp,
+.notion-editor .ProseMirror pre code .hljs-symbol,
+.notion-editor .ProseMirror pre code .hljs-bullet,
+.notion-editor .ProseMirror pre code .hljs-addition,
+.notion-editor .ProseMirror pre code .hljs-attribute {
+  color: #86efac;
+}
+
+.notion-editor .ProseMirror pre code .hljs-number,
+.notion-editor .ProseMirror pre code .hljs-link,
+.notion-editor .ProseMirror pre code .hljs-variable,
+.notion-editor .ProseMirror pre code .hljs-template-variable {
+  color: #fda4af;
+}
+
+.notion-editor .ProseMirror pre code .hljs-function .hljs-title,
+.notion-editor .ProseMirror pre code .hljs-title.function_,
+.notion-editor .ProseMirror pre code .hljs-title.class_,
+.notion-editor .ProseMirror pre code .hljs-class .hljs-title,
+.notion-editor .ProseMirror pre code .hljs-built_in {
+  color: #7dd3fc;
+}
