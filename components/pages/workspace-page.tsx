@@ -5,8 +5,6 @@ import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-quer
 import { AnimatePresence, motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
-import Picker from "@emoji-mart/react";
-import emojiData from "@emoji-mart/data";
 import {
   Check,
   ChevronDown,
@@ -171,18 +169,18 @@ export function WorkspacePageClient({
 }): JSX.Element {
   const { isOpen, setOpen } = useSidebarStore();
   const [shareOpen, setShareOpen] = useState(false);
-  const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
   const [coverTab, setCoverTab] = useState<CoverTab>("solid");
   const [coverLink, setCoverLink] = useState("");
   const [isDraggingCover, setIsDraggingCover] = useState(false);
   const [coverFocalY, setCoverFocalY] = useState(50);
+  const [pendingCoverUrl, setPendingCoverUrl] = useState<string | null>(null);
+  const [pendingFocalDirty, setPendingFocalDirty] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [unsplashInput, setUnsplashInput] = useState("nature");
   const [unsplashQuery, setUnsplashQuery] = useState("nature");
   const [moreOpen, setMoreOpen] = useState(false);
   const [titleValue, setTitleValue] = useState("");
-  const [iconBounce, setIconBounce] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const coverFrameRef = useRef<HTMLDivElement | null>(null);
   const { save, saveState } = useEditor(pageId);
@@ -285,9 +283,7 @@ export function WorkspacePageClient({
   const updateFocal = (value: number) => {
     const next = Math.max(0, Math.min(100, value));
     setCoverFocalY(next);
-    if (parsedCover.kind === "image") {
-      save({ coverImage: encodeImageCover(parsedCover.url, next) });
-    }
+    setPendingFocalDirty(true);
   };
 
   useEffect(() => {
@@ -321,19 +317,18 @@ export function WorkspacePageClient({
   }, [pageQuery.data?.page.title]);
 
   useEffect(() => {
-    if (pageQuery.data?.page.icon) {
-      setIconBounce(true);
-      const timer = setTimeout(() => setIconBounce(false), 600);
-      return () => clearTimeout(timer);
-    }
-    return undefined;
-  }, [pageQuery.data?.page.icon]);
-
-  useEffect(() => {
     if (parsedCover.kind === "image") {
       setCoverFocalY(parsedCover.focalY);
+      setPendingFocalDirty(false);
     }
   }, [parsedCover]);
+
+  useEffect(() => {
+    if (!coverPickerOpen) {
+      setPendingCoverUrl(null);
+      setUploadError(null);
+    }
+  }, [coverPickerOpen]);
 
   useEffect(() => {
     if (!coverPickerOpen || coverTab !== "unsplash" || !loadMoreRef.current) {
@@ -613,31 +608,36 @@ export function WorkspacePageClient({
                 className="h-2 w-56 accent-primary"
                 onChange={(event) => updateFocal(Number(event.target.value))}
               />
+              {pendingFocalDirty && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      if (parsedCover.kind === "image") {
+                        save({ coverImage: encodeImageCover(parsedCover.url, coverFocalY) });
+                        setPendingFocalDirty(false);
+                      }
+                    }}
+                  >
+                    Apply focus
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      if (parsedCover.kind === "image") {
+                        setCoverFocalY(parsedCover.focalY);
+                        setPendingFocalDirty(false);
+                      }
+                    }}
+                  >
+                    Reset
+                  </Button>
+                </>
+              )}
             </div>
           )}
-          <div className="relative">
-            <button
-              aria-label="Choose page icon"
-              className={`-mt-10 mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl border bg-background text-2xl shadow-sm transition-transform ${iconBounce ? "animate-bounce" : ""}`}
-              onClick={() => setIconPickerOpen((prev) => !prev)}
-            >
-              {pageQuery.data.page.icon || "📄"}
-            </button>
-            {iconPickerOpen && (
-              <div className="absolute left-0 top-8 z-20 rounded-lg border bg-background p-2 shadow-lg">
-                <Picker
-                  data={emojiData}
-                  theme="auto"
-                  onEmojiSelect={(emoji: { native?: string }) => {
-                    if (emoji.native) {
-                      save({ icon: emoji.native });
-                      setIconPickerOpen(false);
-                    }
-                  }}
-                />
-              </div>
-            )}
-          </div>
           <Textarea
             value={titleValue}
             className="mb-2 min-h-0 resize-none overflow-hidden border-none bg-transparent px-0 text-[clamp(2.2rem,2rem+1vw,2.8rem)] font-bold tracking-[-0.02em] shadow-none focus-visible:ring-0"
@@ -766,8 +766,7 @@ export function WorkspacePageClient({
                           setUploadError(null);
                           try {
                             const uploadedUrl = await uploadImageFile(file);
-                            applyImageCover(uploadedUrl, 50);
-                            setCoverPickerOpen(false);
+                            setPendingCoverUrl(uploadedUrl);
                           } catch (error) {
                             setUploadError(error instanceof Error ? error.message : "Upload failed");
                             return;
@@ -786,12 +785,34 @@ export function WorkspacePageClient({
                         className="w-full"
                         onClick={() => {
                           if (coverLink) {
-                            applyImageCover(coverLink, 50);
-                            setCoverPickerOpen(false);
+                            setPendingCoverUrl(coverLink.trim());
                           }
                         }}
                       >
-                        Apply image
+                        Preview image
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {coverTab === "upload" && pendingCoverUrl && (
+                  <div className="mt-3 rounded-md border p-3">
+                    <p className="mb-2 text-xs text-muted-foreground">Preview</p>
+                    <div
+                      className="h-32 w-full rounded-md bg-cover bg-center"
+                      style={{ backgroundImage: `url(${pendingCoverUrl})` }}
+                    />
+                    <div className="mt-3 flex items-center gap-2">
+                      <Button
+                        onClick={() => {
+                          applyImageCover(pendingCoverUrl, 50);
+                          setPendingCoverUrl(null);
+                          setCoverPickerOpen(false);
+                        }}
+                      >
+                        Confirm cover
+                      </Button>
+                      <Button variant="ghost" onClick={() => setPendingCoverUrl(null)}>
+                        Cancel
                       </Button>
                     </div>
                   </div>

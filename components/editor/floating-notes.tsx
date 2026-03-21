@@ -1,7 +1,8 @@
 "use client";
 
-import { GripHorizontal, Maximize2, Minimize2, Pin, PinOff, Plus, Settings2, X } from "lucide-react";
+import { BookmarkCheck, GripHorizontal, Maximize2, Minimize2, Pin, Plus, Settings2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -169,6 +170,24 @@ export function FloatingNotes(): JSX.Element {
     setNotes((current) => current.map((note) => (note.id === noteId ? updater(note) : note)));
   };
 
+  const saveNoteToPage = (note: FloatingNote) => {
+    const title = note.title.trim();
+    const body = note.body.trim();
+
+    if (!title && !body) {
+      toast.error("Quick note is empty");
+      return;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent("folium:save-quick-note", {
+        detail: { title, body },
+      }),
+    );
+
+    toast.success("Saved to note");
+  };
+
   useEffect(() => {
     if (!isMounted) {
       return;
@@ -211,7 +230,7 @@ export function FloatingNotes(): JSX.Element {
       if (activeDrag) {
         setNotes((current) =>
           current.map((note) => {
-            if (note.id !== activeDrag.noteId || note.maximized) {
+            if (note.id !== activeDrag.noteId || note.maximized || note.pinned) {
               return note;
             }
 
@@ -335,9 +354,9 @@ export function FloatingNotes(): JSX.Element {
             >
               <header
                 className="flex h-12 items-center gap-1 border-b px-2"
-                style={{ borderColor: isDark ? "#334155" : "#dbeafe", cursor: note.maximized ? "default" : "grab" }}
+                style={{ borderColor: isDark ? "#334155" : "#dbeafe", cursor: note.maximized || note.pinned ? "default" : "grab" }}
                 onPointerDown={(event) => {
-                  if (event.button !== 0 || note.maximized) {
+                  if (event.button !== 0 || note.maximized || note.pinned) {
                     return;
                   }
 
@@ -364,9 +383,18 @@ export function FloatingNotes(): JSX.Element {
                   size="sm"
                   variant="ghost"
                   onClick={() => updateNote(note.id, (current) => ({ ...current, pinned: !current.pinned }))}
-                  title={note.pinned ? "Unpin" : "Pin always on top"}
+                  title={note.pinned ? "Unpin (unlock move)" : "Pin (lock position)"}
+                  className={note.pinned ? "text-primary" : ""}
                 >
-                  {note.pinned ? <Pin className="h-3.5 w-3.5" /> : <PinOff className="h-3.5 w-3.5" />}
+                  <Pin className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => saveNoteToPage(note)}
+                  title="Save quick note into page"
+                >
+                  <BookmarkCheck className="h-3.5 w-3.5" />
                 </Button>
                 <Button
                   size="sm"

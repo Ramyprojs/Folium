@@ -144,6 +144,88 @@ export function TiptapEditor({ pageId, workspaceId, content, contentRevision }: 
     }
   }, [content, contentRevision, editor, editorFocused, pageId]);
 
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    const onQuickNoteSave = (rawEvent: Event) => {
+      const event = rawEvent as CustomEvent<{ title?: string; body?: string }>;
+      const title = (event.detail?.title || "").trim();
+      const body = (event.detail?.body || "").trim();
+
+      const blocks: Array<Record<string, unknown>> = [];
+
+      if (title && title.toLowerCase() !== "quick note") {
+        blocks.push({
+          type: "heading",
+          attrs: { level: 3 },
+          content: [{ type: "text", text: title }],
+        });
+      }
+
+      if (body) {
+        const lines = body.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+        lines.forEach((line) => {
+          blocks.push({
+            type: "paragraph",
+            content: [{ type: "text", text: line }],
+          });
+        });
+      }
+
+      if (blocks.length === 0) {
+        return;
+      }
+
+      editor.chain().focus().insertContent(blocks).run();
+      toast.success("Quick note added to page");
+    };
+
+    window.addEventListener("folium:save-quick-note", onQuickNoteSave as EventListener);
+    return () => {
+      window.removeEventListener("folium:save-quick-note", onQuickNoteSave as EventListener);
+    };
+  }, [editor]);
+
+  const increaseTextSize = () => {
+    if (!editor) {
+      return;
+    }
+
+    if (editor.isActive("heading", { level: 3 })) {
+      editor.chain().focus().toggleHeading({ level: 2 }).run();
+      return;
+    }
+    if (editor.isActive("heading", { level: 2 })) {
+      editor.chain().focus().toggleHeading({ level: 1 }).run();
+      return;
+    }
+    if (editor.isActive("heading", { level: 1 })) {
+      return;
+    }
+
+    editor.chain().focus().toggleHeading({ level: 3 }).run();
+  };
+
+  const decreaseTextSize = () => {
+    if (!editor) {
+      return;
+    }
+
+    if (editor.isActive("heading", { level: 1 })) {
+      editor.chain().focus().toggleHeading({ level: 2 }).run();
+      return;
+    }
+    if (editor.isActive("heading", { level: 2 })) {
+      editor.chain().focus().toggleHeading({ level: 3 }).run();
+      return;
+    }
+    if (editor.isActive("heading", { level: 3 })) {
+      editor.chain().focus().setParagraph().run();
+    }
+  };
+
   const slashActions = useMemo<SlashItem[]>(
     () => [
       {
@@ -375,23 +457,23 @@ export function TiptapEditor({ pageId, workspaceId, content, contentRevision }: 
         }
       }}
     >
-      <AnimatePresence>
-        {editorFocused && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.2 }}
-            className="mb-3 flex flex-wrap gap-2 border-b pb-3"
-          >
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="sticky top-14 z-20 mb-3 flex flex-wrap gap-2 border-b bg-background/95 pb-3 pt-1 backdrop-blur"
+      >
             <Button size="sm" variant={editor?.isActive('bold') ? 'default' : 'outline'} onClick={() => editor?.chain().focus().toggleBold().run()}>
               <Bold className="mr-1 h-3.5 w-3.5" /> Bold
             </Button>
             <Button size="sm" variant={editor?.isActive('italic') ? 'default' : 'outline'} onClick={() => editor?.chain().focus().toggleItalic().run()}>
               <Italic className="mr-1 h-3.5 w-3.5" /> Italic
             </Button>
-            <Button size="sm" variant={editor?.isActive('heading', { level: 1 }) ? 'default' : 'outline'} onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}>
-              <Heading1 className="mr-1 h-3.5 w-3.5" /> H1
+            <Button size="sm" variant="outline" onClick={increaseTextSize}>
+              A
+            </Button>
+            <Button size="sm" variant="outline" onClick={decreaseTextSize}>
+              a
             </Button>
             <Button size="sm" variant={editor?.isActive('bulletList') ? 'default' : 'outline'} onClick={() => editor?.chain().focus().toggleBulletList().run()}>
               <List className="mr-1 h-3.5 w-3.5" /> Bullet List
@@ -411,9 +493,7 @@ export function TiptapEditor({ pageId, workspaceId, content, contentRevision }: 
             <Button size="sm" variant="outline" onClick={() => editor?.chain().focus().setHorizontalRule().run()}>
               <Minus className="mr-1 h-3.5 w-3.5" /> Divider
             </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </motion.div>
 
       <AnimatePresence>
         {showSlashMenu && (
