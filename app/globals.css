@@ -332,6 +332,34 @@ body.cursor-enhanced * {
   @apply border-l-4 border-muted pl-4 text-muted-foreground;
 }
 
+.notion-editor .ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  margin: 0.5rem 0;
+  padding-left: 0;
+}
+
+.notion-editor .ProseMirror li[data-type="taskItem"] {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.2rem 0;
+}
+
+.notion-editor .ProseMirror li[data-type="taskItem"] > label {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.2rem;
+}
+
+.notion-editor .ProseMirror li[data-type="taskItem"] > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.notion-editor .ProseMirror li[data-type="taskItem"] p {
+  margin: 0;
+}
+
 .notion-editor .ProseMirror > * {
   border-left: 2px solid transparent;
   padding-left: 0.25rem;

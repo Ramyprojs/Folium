@@ -534,6 +534,8 @@ async function downloadFromImage(src: string, fileName: string): Promise<void> {
 }
 
 export const AdvancedImage = Image.extend({
+  draggable: false,
+
   addAttributes() {
     return {
       ...this.parent?.(),
