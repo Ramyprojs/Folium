@@ -45,9 +45,9 @@ export function useEditor(pageId: string) {
 
             if (!response.ok) {
               setSaveState("error");
-              await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
+              void queryClient.invalidateQueries({ queryKey: ["page", pageId] });
               if (workspaceId) {
-                await queryClient.invalidateQueries({ queryKey: ["pages", workspaceId] });
+                void queryClient.invalidateQueries({ queryKey: ["pages", workspaceId] });
               }
               continue;
             }
@@ -57,16 +57,12 @@ export function useEditor(pageId: string) {
               clearTimeout(doneTimer.current);
             }
             doneTimer.current = setTimeout(() => setSaveState("idle"), 2000);
-            await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
-            if (workspaceId) {
-              await queryClient.invalidateQueries({ queryKey: ["pages", workspaceId] });
-            }
           } catch {
             setSaveState("error");
-            await queryClient.invalidateQueries({ queryKey: ["page", pageId] });
+            void queryClient.invalidateQueries({ queryKey: ["page", pageId] });
             const currentPage = queryClient.getQueryData<{ page?: { workspaceId?: string } }>(["page", pageId]);
             if (currentPage?.page?.workspaceId) {
-              await queryClient.invalidateQueries({ queryKey: ["pages", currentPage.page.workspaceId] });
+              void queryClient.invalidateQueries({ queryKey: ["pages", currentPage.page.workspaceId] });
             }
           }
         }
