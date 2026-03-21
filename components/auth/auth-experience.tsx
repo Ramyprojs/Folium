@@ -54,6 +54,39 @@ function extractApiErrorMessage(payload: unknown, fallback: string): string {
   return fallback;
 }
 
+function extractApiFieldErrors(payload: unknown): Partial<Record<"name" | "email" | "password" | "confirmPassword", string>> {
+  const result: Partial<Record<"name" | "email" | "password" | "confirmPassword", string>> = {};
+  if (!payload || typeof payload !== "object") {
+    return result;
+  }
+
+  const fieldErrors = (payload as { fieldErrors?: unknown }).fieldErrors;
+  if (!fieldErrors || typeof fieldErrors !== "object") {
+    return result;
+  }
+
+  const readFirst = (value: unknown): string | null => {
+    if (!Array.isArray(value)) {
+      return null;
+    }
+    const first = value.find((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
+    return first ?? null;
+  };
+
+  const nameError = readFirst((fieldErrors as Record<string, unknown>).name);
+  const emailError = readFirst((fieldErrors as Record<string, unknown>).email);
+  const passwordError = readFirst((fieldErrors as Record<string, unknown>).password);
+
+  if (nameError) result.name = nameError;
+  if (emailError) result.email = emailError;
+  if (passwordError) {
+    result.password = passwordError;
+    result.confirmPassword = passwordError;
+  }
+
+  return result;
+}
+
 function passwordStrength(value: string): { label: string; level: number; color: string } {
   let score = 0;
   if (value.length >= 8) score += 1;
@@ -228,6 +261,7 @@ export function AuthExperience({
 
     if (mode === "signup") {
       if (!name) nextErrors.name = "Full name is required.";
+      if (password && password.length < 8) nextErrors.password = "Password must be at least 8 characters.";
       if (password !== confirmPassword) nextErrors.confirmPassword = "Passwords do not match.";
       if (!termsAccepted) nextErrors.terms = "Please accept the terms.";
     }
@@ -280,7 +314,12 @@ export function AuthExperience({
           payload = null;
         }
 
-        setErrors({ email: extractApiErrorMessage(payload, "Unable to create account.") });
+        const fieldErrors = extractApiFieldErrors(payload);
+        if (Object.keys(fieldErrors).length > 0) {
+          setErrors(fieldErrors);
+        } else {
+          setErrors({ email: extractApiErrorMessage(payload, "Unable to create account.") });
+        }
         setLoading(false);
         return;
       }
